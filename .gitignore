@@ -1,0 +1,52 @@
+# This repository lives inside Pi's runtime configuration directory.
+# Deny everything at the repository root unless explicitly allowlisted below.
+/*
+
+# Repository metadata
+!/.gitignore
+!/README.md
+!/LICENSE
+!/package.json
+
+# Sanitized configuration examples
+!/settings.example.json
+!/models.example.json
+!/third-party-models.example.json
+
+# Optional global Pi instructions and UI configuration
+!/AGENTS.md
+!/SYSTEM.md
+!/APPEND_SYSTEM.md
+!/keybindings.json
+
+# First-party Pi resources
+!/extensions/
+!/extensions/**
+!/skills/
+!/skills/**
+
+# Third-party skill installed with `npx skills add`; keep it local and use upstream.
+/skills/i-have-adhd/
+
+!/prompts/
+!/prompts/**
+!/themes/
+!/themes/**
+
+# Defense in depth: never publish credentials or runtime state.
+auth.json
+trust.json
+settings.json
+models.json
+models-store.json
+sessions/
+cache/
+npm/
+git/
+.pi/
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.pfx

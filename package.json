@@ -1,0 +1,25 @@
+{
+  "name": "johnsonran-pi-config",
+  "version": "0.1.0",
+  "private": true,
+  "description": "JohnsonRan's personal Pi extensions and configuration examples",
+  "license": "MIT",
+  "keywords": [
+    "pi-package",
+    "pi-coding-agent"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JohnsonRan/pi-config.git"
+  },
+  "pi": {
+    "extensions": [
+      "./extensions"
+    ]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*",
+    "typebox": "*"
+  }
+}
