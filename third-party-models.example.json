@@ -1,7 +1,7 @@
 {
   "provider": {
     "name": "Third-party API",
-    "api": "openai-completions",
+    "api": "openai-responses",
     "headers": {
       "X-Custom-Header": "$CUSTOM_HEADER"
     },
@@ -9,7 +9,7 @@
     "useCatalogApi": false
   },
   "defaults": {
-    "api": "openai-completions",
+    "api": "openai-responses",
     "baseUrl": "https://example.com/v1",
     "reasoning": false,
     "input": ["text"],
@@ -43,7 +43,7 @@
     "example-model-id": {
       "enabled": true,
       "name": "Example Model",
-      "api": "openai-completions",
+      "api": "openai-responses",
       "baseUrl": "https://example.com/v1",
       "reasoning": true,
       "thinkingLevelMap": {

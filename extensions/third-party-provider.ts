@@ -796,7 +796,7 @@ function buildModels(
   const providerApi =
     metadataConfig.provider?.api ??
     (nonEmptyString(process.env.PI_THIRD_PARTY_API) as ModelApi | undefined) ??
-    "openai-completions";
+    "openai-responses";
   const useCatalogApi = metadataConfig.provider?.useCatalogApi === true;
 
   return sourceModels
@@ -947,7 +947,7 @@ export default async function (pi: ExtensionAPI) {
   const providerApi =
     providerConfig.api ??
     (nonEmptyString(process.env.PI_THIRD_PARTY_API) as ModelApi | undefined) ??
-    "openai-completions";
+    "openai-responses";
 
   pi.registerProvider(providerId, {
     name:

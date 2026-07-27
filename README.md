@@ -53,7 +53,7 @@ Common optional variables:
 | --- | --- | --- |
 | `PI_THIRD_PARTY_PROVIDER_ID` | Pi provider identifier | `third-party` |
 | `PI_THIRD_PARTY_PROVIDER_NAME` | Display name | `Third-party API` |
-| `PI_THIRD_PARTY_API` | Pi API adapter | `openai-completions` |
+| `PI_THIRD_PARTY_API` | Pi API adapter | `openai-responses` |
 | `PI_THIRD_PARTY_MODELS_FILE` | Metadata override file | `~/.pi/agent/third-party-models.json` |
 | `PI_THIRD_PARTY_CONTEXT_WINDOW` | Fallback context window | `128000` |
 | `PI_THIRD_PARTY_MAX_TOKENS` | Fallback maximum output | `16384` |
@@ -70,6 +70,14 @@ Copy-Item third-party-models.example.json $HOME\.pi\agent\third-party-models.jso
 ```
 
 Edit the copied file; `third-party-models.json` is intentionally not tracked by this repository.
+
+The provider defaults to Pi's `openai-responses` adapter, which sends model requests to `<baseUrl>/responses`. The configured gateway must implement the OpenAI Responses API. For a legacy gateway that only supports Chat Completions, explicitly set:
+
+```powershell
+[Environment]::SetEnvironmentVariable("PI_THIRD_PARTY_API", "openai-completions", "User")
+```
+
+Restart the terminal and Pi after changing the persistent adapter setting.
 
 ## Reproduce the global setup
 

@@ -2,7 +2,7 @@
   "providers": {
     "example-provider": {
       "baseUrl": "https://example.com/v1",
-      "api": "openai-completions",
+      "api": "openai-responses",
       "apiKey": "$EXAMPLE_API_KEY",
       "models": [
         {
