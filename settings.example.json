@@ -1,7 +1,7 @@
 {
   "theme": "dark",
   "packages": [
-    "npm:@gotgenes/pi-subagents",
+    "npm:@tintinweb/pi-subagents",
     "npm:pi-simplify",
     "npm:@tintinweb/pi-tasks",
     "https://github.com/xz-dev/conventional-commits-skill",

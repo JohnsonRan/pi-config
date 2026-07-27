@@ -12,6 +12,7 @@ Personal extensions and configuration examples for [Pi](https://pi.dev).
 - `settings.example.json` — example global Pi preferences and package list.
 - `models.example.json` — example custom provider configuration using an environment variable for authentication.
 - `third-party-models.example.json` — metadata override example for the third-party provider extension.
+- `agents/Explore.md` — global `@tintinweb/pi-subagents` Explore override pinned to `third-party/gpt-5.6-luna` with `max` thinking.
 
 ## Install as a Pi package
 
@@ -81,7 +82,7 @@ Copy-Item settings.example.json $HOME\.pi\agent\settings.json
 The example references these separately maintained Pi packages:
 
 ```powershell
-pi install npm:@gotgenes/pi-subagents
+pi install npm:@tintinweb/pi-subagents
 pi install npm:pi-simplify
 pi install npm:@tintinweb/pi-tasks
 pi install git:github.com/xz-dev/conventional-commits-skill
@@ -101,6 +102,31 @@ npx skills update i-have-adhd -g
 ```
 
 Do not blindly overwrite an existing `settings.json`; merge the desired fields instead.
+
+### Subagent model override
+
+`agents/Explore.md` overrides the built-in `Explore` agent from `@tintinweb/pi-subagents` and pins it to:
+
+```yaml
+model: third-party/gpt-5.6-luna
+thinking: max
+```
+
+Pi-subagents discovers this file globally at `~/.pi/agent/agents/Explore.md`. A project-specific file at `<project>/.pi/agents/Explore.md` takes precedence over this global override.
+
+Install the matching package before using the override:
+
+```powershell
+pi install npm:@tintinweb/pi-subagents
+```
+
+The model must be available in Pi's model registry. Verify it with:
+
+```powershell
+pi --list-models gpt-5.6-luna
+```
+
+Restart the Pi session after adding or changing an agent type. To keep another built-in agent on Luna Max, eject or create its same-name `.md` file and add the same `model` and `thinking` fields. If those fields are omitted, that agent inherits the parent session's model and thinking level.
 
 ## Development
 
