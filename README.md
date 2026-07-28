@@ -78,12 +78,19 @@ Restart the terminal and Pi after changing the persistent adapter setting.
 The configuration references these separately maintained Pi packages:
 
 ```powershell
-pi install npm:@tintinweb/pi-subagents
 pi install npm:pi-simplify
 pi install npm:@tintinweb/pi-tasks
 pi install git:github.com/xz-dev/conventional-commits-skill
 pi install npm:context-mode
+pi install npm:@tintinweb/pi-subagents
+pi install git:github.com/xz-dev/pi-continuity
+pi install npm:pi-powerline-footer
+pi install git:github.com/xz-dev/human-handoff-skill
+pi install git:github.com/xz-dev/SuperAgents-skill
+pi install git:github.com/xz-dev/i-read-the-code-skill
 ```
+
+The last three packages add structured human escalation, subagent delegation/review workflows, and evidence-grounded code-review handoffs respectively.
 
 The `i-have-adhd` skill is maintained by [ayghri/i-have-adhd](https://github.com/ayghri/i-have-adhd) and is intentionally not redistributed here. Install the upstream version globally for Pi:
 

@@ -8,7 +8,10 @@
     "npm:context-mode",
     "npm:@tintinweb/pi-subagents",
     "git:github.com/xz-dev/pi-continuity",
-    "npm:pi-powerline-footer"
+    "npm:pi-powerline-footer",
+    "git:github.com/xz-dev/human-handoff-skill",
+    "git:github.com/xz-dev/SuperAgents-skill",
+    "git:github.com/xz-dev/i-read-the-code-skill"
   ],
   "defaultProvider": "third-party",
   "defaultModel": "gpt-5.6-sol",
@@ -17,9 +20,23 @@
   "powerline": {
     "preset": "nerd",
     "layout": {
-      "left": ["model", "thinking", "path", "git"],
-      "right": ["context_pct", "token_total", "cost", "time_spent"],
-      "secondary": ["shell_mode", "subagents", "extension_statuses"]
+      "left": [
+        "model",
+        "thinking",
+        "path",
+        "git"
+      ],
+      "right": [
+        "context_pct",
+        "token_total",
+        "cost",
+        "time_spent"
+      ],
+      "secondary": [
+        "shell_mode",
+        "subagents",
+        "extension_statuses"
+      ]
     },
     "path": {
       "mode": "basename"
