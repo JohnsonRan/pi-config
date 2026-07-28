@@ -1,6 +1,6 @@
 # JohnsonRan Pi Config
 
-Personal extensions and configuration examples for [Pi](https://pi.dev).
+Personal extensions and configuration for [Pi](https://pi.dev).
 
 > [!WARNING]
 > Pi extensions execute with the current user's full system permissions. Review the source before installing this package.
@@ -9,9 +9,7 @@ Personal extensions and configuration examples for [Pi](https://pi.dev).
 
 - `extensions/pi-exa.ts` — Exa web search and page-fetch tools.
 - `extensions/third-party-provider.ts` — dynamically discovers and registers models from an OpenAI-compatible third-party endpoint.
-- `settings.example.json` — example global Pi preferences and package list.
-- `models.example.json` — example custom provider configuration using an environment variable for authentication.
-- `third-party-models.example.json` — metadata override example for the third-party provider extension.
+- `settings.json` — global Pi preferences, package list, and default model selection.
 - `agents/Explore.md` — global `@tintinweb/pi-subagents` Explore override pinned to `third-party/gpt-5.6-luna` with `max` thinking.
 
 ## Install as a Pi package
@@ -63,13 +61,7 @@ Common optional variables:
 | `PI_THIRD_PARTY_PI_CATALOG_PROVIDERS` | Comma-separated Pi catalog providers | extension defaults |
 | `PI_THIRD_PARTY_PI_CATALOG_FILE` | Local Pi catalog file | none |
 
-To customize model metadata locally:
-
-```powershell
-Copy-Item third-party-models.example.json $HOME\.pi\agent\third-party-models.json
-```
-
-Edit the copied file; `third-party-models.json` is intentionally not tracked by this repository.
+Models and their metadata are discovered automatically from the provider's `/models` endpoint and the public catalogs. No model metadata file is included or required. `PI_THIRD_PARTY_MODELS_FILE` remains available only as an optional escape hatch for local overrides. Keep endpoint credentials in environment variables rather than configuration files.
 
 The provider defaults to Pi's `openai-responses` adapter, which sends model requests to `<baseUrl>/responses`. The configured gateway must implement the OpenAI Responses API. For a legacy gateway that only supports Chat Completions, explicitly set:
 
@@ -79,15 +71,11 @@ The provider defaults to Pi's `openai-responses` adapter, which sends model requ
 
 Restart the terminal and Pi after changing the persistent adapter setting.
 
-## Reproduce the global setup
+## Global setup
 
-This package does not overwrite global `settings.json`. Use the example as a reference or copy it on a new machine:
+`settings.json` is tracked directly because it contains preferences and package declarations, not credentials. Installing this repository at `~/.pi/agent` makes it the active global configuration; when adopting only parts of this repository, merge the desired fields into an existing settings file instead of overwriting it blindly.
 
-```powershell
-Copy-Item settings.example.json $HOME\.pi\agent\settings.json
-```
-
-The example references these separately maintained Pi packages:
+The configuration references these separately maintained Pi packages:
 
 ```powershell
 pi install npm:@tintinweb/pi-subagents
@@ -138,14 +126,14 @@ Restart the Pi session after adding or changing an agent type. To keep another b
 
 ## Development
 
-This repository is designed to live at `~/.pi/agent`. Its allowlist-style `.gitignore` excludes Pi credentials, sessions, caches, installed packages, trust decisions, and generated model data.
+Its allowlist-style `.gitignore` excludes Pi credentials, sessions, caches, installed packages, trust decisions, and generated model data.
 
 After changing a resource:
 
 ```powershell
 git status
 git diff
-git add extensions README.md
+git add settings.json extensions README.md
 git commit -m "feat: describe the change"
 git push
 ```
@@ -162,7 +150,7 @@ Never commit:
 - `.env` files or literal API keys
 - `cache/`, `npm/`, `git/`, `.pi/`, or generated model stores
 
-API keys in public examples must use environment references such as `$EXAMPLE_API_KEY` rather than literal values. If a credential is ever committed, revoke it immediately; deleting it in a later commit does not remove it from Git history.
+Configuration files committed to this repository must not contain endpoint credentials. Provider API keys and private base URLs belong in environment variables.
 
 ## License
 

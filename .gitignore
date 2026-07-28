@@ -8,10 +8,8 @@
 !/LICENSE
 !/package.json
 
-# Sanitized configuration examples
-!/settings.example.json
-!/models.example.json
-!/third-party-models.example.json
+# Tracked configuration (contains no credentials)
+!/settings.json
 
 # Optional global Pi instructions and UI configuration
 !/AGENTS.md
@@ -40,7 +38,6 @@
 # Defense in depth: never publish credentials or runtime state.
 auth.json
 trust.json
-settings.json
 models.json
 models-store.json
 sessions/

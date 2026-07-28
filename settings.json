@@ -1,0 +1,35 @@
+{
+  "lastChangelogVersion": "0.82.1",
+  "theme": "dark",
+  "packages": [
+    "npm:pi-simplify",
+    "npm:@tintinweb/pi-tasks",
+    "https://github.com/xz-dev/conventional-commits-skill",
+    "npm:context-mode",
+    "npm:@tintinweb/pi-subagents",
+    "git:github.com/xz-dev/pi-continuity",
+    "npm:pi-powerline-footer"
+  ],
+  "defaultProvider": "third-party",
+  "defaultModel": "gpt-5.6-sol",
+  "defaultThinkingLevel": "medium",
+  "enableInstallTelemetry": false,
+  "powerline": {
+    "preset": "nerd",
+    "layout": {
+      "left": ["model", "thinking", "path", "git"],
+      "right": ["context_pct", "token_total", "cost", "time_spent"],
+      "secondary": ["shell_mode", "subagents", "extension_statuses"]
+    },
+    "path": {
+      "mode": "basename"
+    },
+    "git": {
+      "showBranch": true,
+      "showStaged": true,
+      "showUnstaged": true,
+      "showUntracked": true,
+      "polling": "full"
+    }
+  }
+}
