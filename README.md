@@ -10,7 +10,7 @@ Personal extensions and configuration for [Pi](https://pi.dev).
 - `extensions/pi-exa.ts` — Exa web search and page-fetch tools.
 - `extensions/third-party-provider.ts` — dynamically discovers and registers models from an OpenAI-compatible third-party endpoint.
 - `settings.json` — global Pi preferences, package list, and default model selection.
-- `agents/Explore.md` — global `@tintinweb/pi-subagents` Explore override pinned to `third-party/gpt-5.6-luna` with `max` thinking.
+- `agents/*.md` — specialized subagent model, reasoning, and role overrides for planning, exploration, implementation, research, review, and testing.
 
 ## Install as a Pi package
 
@@ -106,30 +106,33 @@ npx skills update i-have-adhd -g
 
 Do not blindly overwrite an existing `settings.json`; merge the desired fields instead.
 
-### Subagent model override
+### Specialized subagents
 
-`agents/Explore.md` overrides the built-in `Explore` agent from `@tintinweb/pi-subagents` and pins it to:
+The files under `agents/` configure global specialized agents:
 
-```yaml
-model: third-party/gpt-5.6-luna
-thinking: max
-```
+| Agent | Model | Thinking | Role |
+| --- | --- | --- | --- |
+| `Explore` | `third-party/gpt-5.6-terra` | `high` | Codebase exploration |
+| `Plan` | `third-party/gpt-5.6-sol` | `max` | Planning with reviewer validation |
+| `frontend-engineer` | `third-party/gemini-3.6-flash-high` | model default | Frontend implementation |
+| `general-purpose` | `third-party/gpt-5.6-sol` | `medium` | General tasks |
+| `researcher` | `third-party/gpt-5.6-sol` | `high` | Research |
+| `reviewer` | `third-party/gpt-5.6-sol` | `xhigh` | Rigorous quality review |
+| `tester` | `third-party/gpt-5.6-sol` | `high` | Test design and verification |
+| `ui-leader` | `third-party/gemini-3.6-flash-high` | model default | UI design leadership |
+| `worker-auto` | `third-party/glm-5.2` | `max` | Automation and DevOps work |
+| `worker-pro-backend` | `third-party/gpt-5.6-sol` | `high` | Backend and DevOps work |
+| `worker` | `third-party/gpt-5.6-luna` | `max` | Fast routine implementation |
 
-Pi-subagents discovers this file globally at `~/.pi/agent/agents/Explore.md`. A project-specific file at `<project>/.pi/agents/Explore.md` takes precedence over this global override.
+Pi discovers these files globally at `~/.pi/agent/agents/`. A project-specific file at `<project>/.pi/agents/<agent-name>.md` takes precedence over its global counterpart.
 
-Install the matching package before using the override:
+The configured models must be available in Pi's model registry. Verify a model with, for example:
 
 ```powershell
-pi install npm:@tintinweb/pi-subagents
+pi --list-models gpt-5.6-sol
 ```
 
-The model must be available in Pi's model registry. Verify it with:
-
-```powershell
-pi --list-models gpt-5.6-luna
-```
-
-Restart the Pi session after adding or changing an agent type. To keep another built-in agent on Luna Max, eject or create its same-name `.md` file and add the same `model` and `thinking` fields. If those fields are omitted, that agent inherits the parent session's model and thinking level.
+Restart the Pi session after adding or changing an agent definition.
 
 ## Development
 
