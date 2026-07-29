@@ -2,11 +2,25 @@ import type {
   ExtensionAPI,
   ProviderModelConfig,
 } from "@earendil-works/pi-coding-agent";
+import type {
+  AssistantMessage,
+  AssistantMessageEvent,
+  Context,
+  Model,
+  SimpleStreamOptions,
+} from "@earendil-works/pi-ai";
+import {
+  clampThinkingLevel,
+  createAssistantMessageEventStream,
+  openAIResponsesApi,
+  registerSessionResourceCleanup,
+} from "@earendil-works/pi-ai";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { request as httpRequest } from "node:http";
 import { request as httpsRequest } from "node:https";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
+import { pathToFileURL } from "node:url";
 
 type ProviderModel = {
   id?: unknown;
@@ -934,6 +948,576 @@ async function discoverModels(
   return { models, metadataConfig };
 }
 
+type CLIProxyTransport = "sse" | "auto" | "websocket" | "websocket-cached";
+
+type ResponsesHelpers = {
+  createGrammarToolInputProperties: (...args: any[]) => ReadonlyMap<string, string>;
+  convertResponsesMessages: (...args: any[]) => any[];
+  convertResponsesTools: (...args: any[]) => any[];
+  processResponsesStream: (...args: any[]) => Promise<void>;
+  buildBaseOptions: (...args: any[]) => any;
+};
+
+let responsesHelpersPromise: Promise<ResponsesHelpers> | undefined;
+
+function importableModuleUrl(value: string): string {
+  return value.startsWith("file:") ? value : pathToFileURL(value).href;
+}
+
+async function loadResponsesHelpers(): Promise<ResponsesHelpers> {
+  if (responsesHelpersPromise) return responsesHelpersPromise;
+  responsesHelpersPromise = (async () => {
+    // Pi aliases the pi-ai package root to compat.js for extensions. Resolve
+    // that supported root first, then load sibling implementation modules by
+    // absolute URL so Jiti does not append subpaths to compat.js.
+    const compatResolved = import.meta.resolve("@earendil-works/pi-ai/compat");
+    const compatUrl = importableModuleUrl(compatResolved);
+    const [constrained, shared, simple] = await Promise.all([
+      import(new URL("./api/constrained-sampling.js", compatUrl).href),
+      import(new URL("./api/openai-responses-shared.js", compatUrl).href),
+      import(new URL("./api/simple-options.js", compatUrl).href),
+    ]);
+    return {
+      createGrammarToolInputProperties: constrained.createGrammarToolInputProperties,
+      convertResponsesMessages: shared.convertResponsesMessages,
+      convertResponsesTools: shared.convertResponsesTools,
+      processResponsesStream: shared.processResponsesStream,
+      buildBaseOptions: simple.buildBaseOptions,
+    };
+  })();
+  return responsesHelpersPromise;
+}
+
+type WebSocketLike = {
+  readyState?: number;
+  send(data: string): void;
+  close(code?: number, reason?: string): void;
+  addEventListener(type: string, listener: (event: any) => void): void;
+  removeEventListener(type: string, listener: (event: any) => void): void;
+};
+
+type WebSocketContinuation = {
+  lastRequestBody: Record<string, unknown>;
+  lastResponseId: string;
+  lastResponseItems: unknown[];
+};
+
+type WebSocketSession = {
+  socket: WebSocketLike;
+  busy: boolean;
+  createdAt: number;
+  idleTimer?: ReturnType<typeof setTimeout>;
+  continuation?: WebSocketContinuation;
+};
+
+const CLIPROXY_WEBSOCKET_BETA = "responses_websockets=2026-02-06";
+const CLIPROXY_WEBSOCKET_CONNECT_TIMEOUT_MS = 15000;
+const CLIPROXY_WEBSOCKET_IDLE_TTL_MS = 5 * 60 * 1000;
+const CLIPROXY_WEBSOCKET_MAX_AGE_MS = 55 * 60 * 1000;
+const cliProxyWebSocketSessions = new Map<string, WebSocketSession>();
+
+function closeCLIProxyWebSocketSessions(): void {
+  for (const entry of cliProxyWebSocketSessions.values()) {
+    if (entry.idleTimer) clearTimeout(entry.idleTimer);
+    closeWebSocket(entry.socket, "session_cleanup");
+  }
+  cliProxyWebSocketSessions.clear();
+}
+
+registerSessionResourceCleanup(closeCLIProxyWebSocketSessions);
+
+function cliProxyResponsesUrl(baseUrl: string): string {
+  const normalized = baseUrl.replace(/\/+$/, "");
+  return normalized.endsWith("/responses")
+    ? normalized
+    : `${normalized}/responses`;
+}
+
+function cliProxyWebSocketUrl(baseUrl: string): string {
+  const url = new URL(cliProxyResponsesUrl(baseUrl));
+  if (url.protocol === "https:") url.protocol = "wss:";
+  else if (url.protocol === "http:") url.protocol = "ws:";
+  else throw new Error(`Unsupported CLIProxyAPI URL scheme: ${url.protocol}`);
+  return url.toString();
+}
+
+function closeWebSocket(socket: WebSocketLike, reason = "done"): void {
+  try {
+    socket.close(1000, reason);
+  } catch {
+    // Best-effort cleanup.
+  }
+}
+
+function reusableWebSocket(socket: WebSocketLike): boolean {
+  return socket.readyState === undefined || socket.readyState === 1;
+}
+
+function expireWebSocketSession(sessionKey: string, entry: WebSocketSession): void {
+  if (entry.idleTimer) clearTimeout(entry.idleTimer);
+  entry.idleTimer = setTimeout(() => {
+    if (entry.busy || cliProxyWebSocketSessions.get(sessionKey) !== entry) return;
+    closeWebSocket(entry.socket, "idle_timeout");
+    cliProxyWebSocketSessions.delete(sessionKey);
+  }, CLIPROXY_WEBSOCKET_IDLE_TTL_MS);
+}
+
+async function connectCLIProxyWebSocket(
+  url: string,
+  headers: Record<string, string>,
+  signal?: AbortSignal,
+  timeoutMs = CLIPROXY_WEBSOCKET_CONNECT_TIMEOUT_MS,
+): Promise<WebSocketLike> {
+  const WebSocketCtor = globalThis.WebSocket as
+    | (new (url: string, options?: { headers?: Record<string, string> }) => WebSocketLike)
+    | undefined;
+  if (!WebSocketCtor) {
+    throw new Error("WebSocket transport is unavailable in this runtime");
+  }
+
+  return await new Promise<WebSocketLike>((resolve, reject) => {
+    let socket: WebSocketLike;
+    let settled = false;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    try {
+      socket = new WebSocketCtor(url, { headers });
+    } catch (error) {
+      reject(error);
+      return;
+    }
+
+    const cleanup = () => {
+      if (timeout) clearTimeout(timeout);
+      socket.removeEventListener("open", onOpen);
+      socket.removeEventListener("error", onError);
+      socket.removeEventListener("close", onClose);
+      signal?.removeEventListener("abort", onAbort);
+    };
+    const fail = (error: Error, reason?: string) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      if (reason) closeWebSocket(socket, reason);
+      reject(error);
+    };
+    const onOpen = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(socket);
+    };
+    const onError = (event: any) =>
+      fail(event?.error instanceof Error ? event.error : new Error(event?.message || "WebSocket error"));
+    const onClose = (event: any) =>
+      fail(new Error(`WebSocket closed before opening${event?.code ? ` (${event.code})` : ""}`));
+    const onAbort = () => fail(new Error("Request was aborted"), "aborted");
+
+    socket.addEventListener("open", onOpen);
+    socket.addEventListener("error", onError);
+    socket.addEventListener("close", onClose);
+    signal?.addEventListener("abort", onAbort, { once: true });
+    timeout = setTimeout(
+      () => fail(new Error(`WebSocket connect timeout after ${timeoutMs}ms`), "connect_timeout"),
+      timeoutMs,
+    );
+    if (signal?.aborted) onAbort();
+  });
+}
+
+async function acquireCLIProxyWebSocket(
+  url: string,
+  headers: Record<string, string>,
+  sessionKey: string | undefined,
+  signal: AbortSignal | undefined,
+  timeoutMs: number,
+): Promise<{
+  socket: WebSocketLike;
+  entry?: WebSocketSession;
+  release(keep: boolean): void;
+}> {
+  if (!sessionKey) {
+    const socket = await connectCLIProxyWebSocket(url, headers, signal, timeoutMs);
+    return { socket, release: () => closeWebSocket(socket) };
+  }
+
+  const cached = cliProxyWebSocketSessions.get(sessionKey);
+  const cachedWasBusy = cached?.busy === true;
+  if (cached) {
+    if (cached.idleTimer) clearTimeout(cached.idleTimer);
+    const expired = Date.now() - cached.createdAt >= CLIPROXY_WEBSOCKET_MAX_AGE_MS;
+    if (!cached.busy && !expired && reusableWebSocket(cached.socket)) {
+      cached.busy = true;
+      return {
+        socket: cached.socket,
+        entry: cached,
+        release(keep) {
+          if (!keep || !reusableWebSocket(cached.socket)) {
+            closeWebSocket(cached.socket);
+            if (cliProxyWebSocketSessions.get(sessionKey) === cached) {
+              cliProxyWebSocketSessions.delete(sessionKey);
+            }
+          } else {
+            cached.busy = false;
+            expireWebSocketSession(sessionKey, cached);
+          }
+        },
+      };
+    }
+    if (!cached.busy) {
+      closeWebSocket(cached.socket, expired ? "connection_age_limit" : "closed");
+      if (cliProxyWebSocketSessions.get(sessionKey) === cached) {
+        cliProxyWebSocketSessions.delete(sessionKey);
+      }
+    }
+  }
+
+  const socket = await connectCLIProxyWebSocket(url, headers, signal, timeoutMs);
+  if (cachedWasBusy) return { socket, release: () => closeWebSocket(socket) };
+  const entry: WebSocketSession = { socket, busy: true, createdAt: Date.now() };
+  cliProxyWebSocketSessions.set(sessionKey, entry);
+  return {
+    socket,
+    entry,
+    release(keep) {
+      if (!keep || !reusableWebSocket(socket)) {
+        closeWebSocket(socket);
+        if (cliProxyWebSocketSessions.get(sessionKey) === entry) {
+          cliProxyWebSocketSessions.delete(sessionKey);
+        }
+      } else {
+        entry.busy = false;
+        expireWebSocketSession(sessionKey, entry);
+      }
+    },
+  };
+}
+
+async function decodeWebSocketMessage(data: unknown): Promise<string | undefined> {
+  if (typeof data === "string") return data;
+  if (data instanceof ArrayBuffer) return new TextDecoder().decode(data);
+  if (ArrayBuffer.isView(data)) {
+    return new TextDecoder().decode(
+      new Uint8Array(data.buffer, data.byteOffset, data.byteLength),
+    );
+  }
+  if (data && typeof data === "object" && "arrayBuffer" in data) {
+    return new TextDecoder().decode(await (data as Blob).arrayBuffer());
+  }
+  return undefined;
+}
+
+async function* parseCLIProxyWebSocket(
+  socket: WebSocketLike,
+  signal?: AbortSignal,
+  idleTimeoutMs?: number,
+): AsyncGenerator<any> {
+  const queue: any[] = [];
+  let wake: (() => void) | undefined;
+  let done = false;
+  let error: Error | undefined;
+  let completed = false;
+
+  const notify = () => {
+    wake?.();
+    wake = undefined;
+  };
+  const onMessage = (event: any) => {
+    void (async () => {
+      try {
+        const text = await decodeWebSocketMessage(event?.data);
+        if (!text) return;
+        const payload = JSON.parse(text);
+        queue.push(payload);
+        if (["response.completed", "response.incomplete", "response.failed"].includes(payload?.type)) {
+          completed = true;
+          done = true;
+        }
+        notify();
+      } catch (cause) {
+        error = new Error(`Invalid CLIProxyAPI WebSocket event: ${String(cause)}`);
+        done = true;
+        notify();
+      }
+    })();
+  };
+  const onError = (event: any) => {
+    error = event?.error instanceof Error ? event.error : new Error(event?.message || "WebSocket error");
+    done = true;
+    notify();
+  };
+  const onClose = (event: any) => {
+    if (!completed) {
+      error = new Error(`WebSocket closed before response.completed${event?.code ? ` (${event.code})` : ""}`);
+    }
+    done = true;
+    notify();
+  };
+  const onAbort = () => {
+    error = new Error("Request was aborted");
+    done = true;
+    closeWebSocket(socket, "aborted");
+    notify();
+  };
+
+  socket.addEventListener("message", onMessage);
+  socket.addEventListener("error", onError);
+  socket.addEventListener("close", onClose);
+  signal?.addEventListener("abort", onAbort, { once: true });
+  try {
+    while (true) {
+      if (queue.length > 0) {
+        yield queue.shift();
+        continue;
+      }
+      if (done) break;
+      await new Promise<void>((resolve, reject) => {
+        wake = resolve;
+        if (idleTimeoutMs && idleTimeoutMs > 0) {
+          const timeout = setTimeout(
+            () => reject(new Error(`WebSocket idle timeout after ${idleTimeoutMs}ms`)),
+            idleTimeoutMs,
+          );
+          const originalWake = wake;
+          wake = () => {
+            clearTimeout(timeout);
+            originalWake();
+          };
+        }
+      });
+    }
+    if (error) throw error;
+  } finally {
+    socket.removeEventListener("message", onMessage);
+    socket.removeEventListener("error", onError);
+    socket.removeEventListener("close", onClose);
+    signal?.removeEventListener("abort", onAbort);
+  }
+}
+
+function requestBodyWithoutInput(body: Record<string, unknown>): Record<string, unknown> {
+  const { input: _input, previous_response_id: _previous, ...rest } = body;
+  return rest;
+}
+
+function incrementalRequestBody(
+  entry: WebSocketSession | undefined,
+  body: Record<string, unknown>,
+  enabled: boolean,
+): Record<string, unknown> {
+  const continuation = entry?.continuation;
+  if (!enabled || !continuation) return body;
+  if (JSON.stringify(requestBodyWithoutInput(body)) !== JSON.stringify(requestBodyWithoutInput(continuation.lastRequestBody))) {
+    entry.continuation = undefined;
+    return body;
+  }
+  const current = Array.isArray(body.input) ? body.input : [];
+  const baseline = [
+    ...(Array.isArray(continuation.lastRequestBody.input) ? continuation.lastRequestBody.input : []),
+    ...continuation.lastResponseItems,
+  ];
+  if (current.length < baseline.length || JSON.stringify(current.slice(0, baseline.length)) !== JSON.stringify(baseline)) {
+    entry.continuation = undefined;
+    return body;
+  }
+  return {
+    ...body,
+    previous_response_id: continuation.lastResponseId,
+    input: current.slice(baseline.length),
+  };
+}
+
+async function buildCLIProxyResponsesBody(
+  model: Model<any>,
+  context: Context,
+  options: SimpleStreamOptions,
+): Promise<{
+  body: Record<string, unknown>;
+  grammarToolInputProperties: ReadonlyMap<string, string>;
+  helpers: ResponsesHelpers;
+}> {
+  const helpers = await loadResponsesHelpers();
+  const base = helpers.buildBaseOptions(model, context, options, options.apiKey);
+  const reasoning = options.reasoning
+    ? clampThinkingLevel(model, options.reasoning)
+    : undefined;
+  const grammarToolInputProperties = helpers.createGrammarToolInputProperties(
+    context.tools,
+    model.compat?.supportsOpenAIGrammarTools ?? false,
+  );
+  const body: Record<string, unknown> = {
+    model: model.id,
+    input: helpers.convertResponsesMessages(
+      model,
+      context,
+      new Set([model.provider, "openai", "openai-codex", "opencode"]),
+      { grammarToolInputProperties },
+    ),
+    stream: true,
+    store: false,
+  };
+  if (base.maxTokens) body.max_output_tokens = Math.max(base.maxTokens, 16);
+  if (base.temperature !== undefined) body.temperature = base.temperature;
+  if (context.tools?.length) {
+    body.tools = helpers.convertResponsesTools(context.tools, {
+      supportsStrictMode: model.compat?.supportsStrictMode ?? false,
+      supportsOpenAIGrammarTools: model.compat?.supportsOpenAIGrammarTools ?? false,
+    });
+  }
+  if (model.reasoning) {
+    if (reasoning && reasoning !== "off") {
+      body.reasoning = {
+        effort: model.thinkingLevelMap?.[reasoning] ?? reasoning,
+        summary: "auto",
+      };
+      body.include = ["reasoning.encrypted_content"];
+    } else if (model.thinkingLevelMap?.off !== null) {
+      body.reasoning = { effort: model.thinkingLevelMap?.off ?? "none" };
+    }
+  }
+  return { body, grammarToolInputProperties, helpers };
+}
+
+async function pipeAssistantEvents(
+  source: AsyncIterable<AssistantMessageEvent>,
+  target: ReturnType<typeof createAssistantMessageEventStream>,
+): Promise<void> {
+  for await (const event of source) target.push(event);
+  target.end();
+}
+
+function cleanStreamingScratch(output: AssistantMessage): void {
+  for (const block of output.content) {
+    delete (block as any).index;
+    delete (block as any).partialJson;
+    delete (block as any).customInput;
+  }
+}
+
+function createCLIProxyStream() {
+  return (model: Model<any>, context: Context, options: SimpleStreamOptions = {}) => {
+    const requested = options.transport ?? "sse";
+  if (requested === "sse") {
+      return openAIResponsesApi().streamSimple(model, context, options);
+    }
+
+    const stream = createAssistantMessageEventStream();
+    void (async () => {
+      const output: AssistantMessage = {
+        role: "assistant",
+        content: [],
+        api: model.api,
+        provider: model.provider,
+        model: model.id,
+        usage: {
+          input: 0,
+          output: 0,
+          cacheRead: 0,
+          cacheWrite: 0,
+          totalTokens: 0,
+          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+        },
+        stopReason: "stop",
+        timestamp: Date.now(),
+      };
+      let emitted = false;
+      let sendAttempted = false;
+      let release: ((keep: boolean) => void) | undefined;
+      try {
+        if (!options.apiKey) throw new Error(`No API key for provider: ${model.provider}`);
+        const built = await buildCLIProxyResponsesBody(model, context, options);
+        let body = built.body;
+        const replaced = await options.onPayload?.(body, model);
+        if (replaced !== undefined) body = replaced as Record<string, unknown>;
+        const sessionId = options.cacheRetention === "none" ? undefined : options.sessionId;
+        const headers: Record<string, string> = {
+          ...model.headers,
+          ...Object.fromEntries(
+            Object.entries(options.headers ?? {}).filter((entry): entry is [string, string] => entry[1] !== null),
+          ),
+          Authorization: `Bearer ${options.apiKey}`,
+          "OpenAI-Beta": CLIPROXY_WEBSOCKET_BETA,
+        };
+        if (sessionId) {
+          headers["session-id"] = sessionId;
+          headers["x-client-request-id"] = sessionId;
+        }
+        const websocketUrl = cliProxyWebSocketUrl(model.baseUrl);
+        const sessionKey = sessionId
+          ? `${sessionId}\0${websocketUrl}\0${options.apiKey}\0${JSON.stringify(headers)}`
+          : undefined;
+        const acquired = await acquireCLIProxyWebSocket(
+          websocketUrl,
+          headers,
+          sessionKey,
+          options.signal,
+          options.websocketConnectTimeoutMs ?? CLIPROXY_WEBSOCKET_CONNECT_TIMEOUT_MS,
+        );
+        release = acquired.release;
+        const useIncremental = requested === "auto" || requested === "websocket-cached";
+        const requestBody = incrementalRequestBody(acquired.entry, body, useIncremental);
+        sendAttempted = true;
+        acquired.socket.send(JSON.stringify({ type: "response.create", ...requestBody }));
+
+        let completedResponse: any;
+        async function* events() {
+          for await (const event of parseCLIProxyWebSocket(acquired.socket, options.signal, options.timeoutMs)) {
+            if (!emitted) {
+              emitted = true;
+              stream.push({ type: "start", partial: output });
+            }
+            if (event?.type === "response.completed") completedResponse = event.response;
+            yield event;
+          }
+        }
+        await built.helpers.processResponsesStream(events(), output, stream, model, {
+          grammarToolInputProperties: built.grammarToolInputProperties,
+        });
+        if (acquired.entry && useIncremental && completedResponse?.id) {
+          const responseItems = built.helpers.convertResponsesMessages(
+            model,
+            { messages: [output], tools: [] },
+            new Set([model.provider, "openai", "openai-codex", "opencode"]),
+            { includeSystemPrompt: false },
+          ).filter((item: any) => item.type !== "function_call_output" && item.type !== "custom_tool_call_output");
+          acquired.entry.continuation = {
+            lastRequestBody: body,
+            lastResponseId: completedResponse.id,
+            lastResponseItems: responseItems,
+          };
+        }
+        release(true);
+        release = undefined;
+        stream.push({ type: "done", reason: output.stopReason, message: output });
+        stream.end();
+      } catch (error) {
+        release?.(false);
+        cleanStreamingScratch(output);
+        if (!sendAttempted && !emitted && requested === "auto" && !options.signal?.aborted) {
+          try {
+            await pipeAssistantEvents(
+              openAIResponsesApi().streamSimple(model, context, options),
+              stream,
+            );
+          } catch (fallbackError) {
+            output.stopReason = "error";
+            output.errorMessage = fallbackError instanceof Error
+              ? fallbackError.message
+              : String(fallbackError);
+            stream.push({ type: "error", reason: "error", error: output });
+            stream.end();
+          }
+          return;
+        }
+        output.stopReason = options.signal?.aborted ? "aborted" : "error";
+        output.errorMessage = error instanceof Error ? error.message : String(error);
+        stream.push({ type: "error", reason: output.stopReason, error: output });
+        stream.end();
+      }
+    })();
+    return stream;
+  };
+}
+
 export default async function (pi: ExtensionAPI) {
   const baseUrl = process.env.PI_THIRD_PARTY_BASE_URL?.replace(/\/+$/, "");
   const apiKey = process.env.THIRD_PARTY_API_KEY;
@@ -960,6 +1544,9 @@ export default async function (pi: ExtensionAPI) {
     ...(providerConfig.headers ? { headers: providerConfig.headers } : {}),
     ...(providerConfig.authHeader !== undefined
       ? { authHeader: providerConfig.authHeader }
+      : {}),
+    ...(providerApi === "openai-responses"
+      ? { streamSimple: createCLIProxyStream() }
       : {}),
     models: initial.models,
     async refreshModels({ signal }) {

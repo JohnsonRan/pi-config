@@ -71,6 +71,23 @@ The provider defaults to Pi's `openai-responses` adapter, which sends model requ
 
 Restart the terminal and Pi after changing the persistent adapter setting.
 
+### CLIProxyAPI WebSocket transport
+
+The third-party provider includes an opt-in Responses WebSocket transport designed for CLIProxyAPI. It uses the normal CLIProxyAPI bearer key and connects to `<baseUrl>/responses`; unlike Pi's built-in `openai-codex-responses` adapter, it does not require a ChatGPT JWT or add `/codex/responses`.
+
+Select the transport through Pi's global **Settings → Transport** option. The provider follows that setting directly.
+
+| Transport | Behavior |
+| --- | --- |
+| `sse` | Standard Responses HTTP/SSE transport; the default and most compatible mode. |
+| `auto` | Try WebSocket first and fall back to SSE only if the connection fails before the request is sent. Reuses session connections and sends incremental follow-ups when safe. |
+| `websocket` | Require WebSocket, reuse the session connection, and send full context on each request. |
+| `websocket-cached` | Require WebSocket and use `previous_response_id` plus incremental input when the session state matches. |
+
+CLIProxyAPI must expose WebSocket upgrades on `/v1/responses` (assuming the configured base URL ends in `/v1`). For end-to-end WebSocket transport, the selected CLIProxyAPI Codex auth must also enable `websockets: true`; otherwise the Pi-to-proxy leg can use WebSocket while CLIProxyAPI uses HTTP/SSE upstream.
+
+`auto` is recommended because it preserves SSE fallback for WebSocket handshake, proxy, or endpoint failures before the request is sent. After Pi attempts to send `response.create`, errors are returned instead of replaying the request over SSE, avoiding duplicate generation, billing, tool calls, or other side effects.
+
 ## Global setup
 
 `settings.json` is tracked directly because it contains preferences and package declarations, not credentials. Installing this repository at `~/.pi/agent` makes it the active global configuration; when adopting only parts of this repository, merge the desired fields into an existing settings file instead of overwriting it blindly.
