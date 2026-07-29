@@ -1,4 +1,4 @@
 ---
-model: third-party/gpt-5.6-sol
-thinking: medium
+model: third-party/gpt-5.6-luna
+thinking: max
 ---

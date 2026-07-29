@@ -88,9 +88,10 @@ pi install npm:pi-powerline-footer
 pi install git:github.com/xz-dev/human-handoff-skill
 pi install git:github.com/xz-dev/SuperAgents-skill
 pi install git:github.com/xz-dev/i-read-the-code-skill
+pi install npm:@georgebashi/pi-retry
 ```
 
-The last three packages add structured human escalation, subagent delegation/review workflows, and evidence-grounded code-review handoffs respectively.
+The workflow skill packages add structured human escalation, subagent delegation/review workflows, and evidence-grounded code-review handoffs. `@georgebashi/pi-retry` adds retry support for transient model-provider failures.
 
 The `i-have-adhd` skill is maintained by [ayghri/i-have-adhd](https://github.com/ayghri/i-have-adhd) and is intentionally not redistributed here. Install the upstream version globally for Pi:
 
@@ -115,14 +116,15 @@ The files under `agents/` configure global specialized agents:
 | `Explore` | `third-party/gpt-5.6-terra` | `high` | Codebase exploration |
 | `Plan` | `third-party/gpt-5.6-sol` | `max` | Planning with reviewer validation |
 | `frontend-engineer` | `third-party/gemini-3.6-flash-high` | model default | Frontend implementation |
-| `general-purpose` | `third-party/gpt-5.6-sol` | `medium` | General tasks |
+| `general-purpose` | `third-party/gpt-5.6-luna` | `max` | General tasks |
+| `Oracle` | `third-party/gpt-5.6-sol` | `max` | First-principles reflection and course correction |
 | `researcher` | `third-party/gpt-5.6-sol` | `high` | Research |
 | `reviewer` | `third-party/gpt-5.6-sol` | `xhigh` | Rigorous quality review |
 | `tester` | `third-party/gpt-5.6-sol` | `high` | Test design and verification |
 | `ui-leader` | `third-party/gemini-3.6-flash-high` | model default | UI design leadership |
 | `worker-auto` | `third-party/glm-5.2` | `max` | Automation and DevOps work |
 | `worker-pro-backend` | `third-party/gpt-5.6-sol` | `high` | Backend and DevOps work |
-| `worker` | `third-party/gpt-5.6-luna` | `max` | Fast routine implementation |
+| `worker` | `third-party/gpt-5.6-terra` | `medium` | Fast routine implementation |
 
 Pi discovers these files globally at `~/.pi/agent/agents/`. A project-specific file at `<project>/.pi/agents/<agent-name>.md` takes precedence over its global counterpart.
 
