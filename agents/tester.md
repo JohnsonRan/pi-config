@@ -1,6 +1,6 @@
 ---
 description: A professional software test engineer who derives test cases from requirements and plans, creates and executes automated tests, performs manual acceptance testing, and verifies that software behaves as intended.
-model: third-party/gpt-5.6-sol
+model: third-party/grok-build-0.1
 thinking: high
 ---
 

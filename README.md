@@ -10,6 +10,8 @@ Personal extensions and configuration for [Pi](https://pi.dev).
 - `extensions/pi-exa.ts` — Exa web search and page-fetch tools.
 - `extensions/third-party-provider.ts` — dynamically discovers and registers models from an OpenAI-compatible third-party endpoint.
 - `settings.json` — global Pi preferences, package list, and default model selection.
+- `AGENTS.md` — lightweight main-agent routing policy for when to keep work local vs spawn subagents.
+- `skills/route-subagents/` — fuller pre-task checklist for classifying work, choosing `subagent_type`(s), briefing, and parallel rules.
 - `agents/*.md` — specialized subagent model, reasoning, and role overrides for planning, exploration, implementation, research, review, and testing.
 
 ## Install as a Pi package
@@ -106,9 +108,11 @@ pi install git:github.com/xz-dev/human-handoff-skill
 pi install git:github.com/xz-dev/SuperAgents-skill
 pi install git:github.com/xz-dev/i-read-the-code-skill
 pi install npm:@georgebashi/pi-retry
+pi install npm:browser-goblin
+pi install npm:@llblab/pi-telegram
 ```
 
-The workflow skill packages add structured human escalation, subagent delegation/review workflows, and evidence-grounded code-review handoffs. `@georgebashi/pi-retry` adds retry support for transient model-provider failures.
+The workflow skill packages add structured human escalation, subagent delegation/review workflows, and evidence-grounded code-review handoffs. `@georgebashi/pi-retry` adds retry support for transient model-provider failures. `browser-goblin` adds browser testing tools/skills; `@llblab/pi-telegram` enables Telegram integration when configured.
 
 The `i-have-adhd` skill is maintained by [ayghri/i-have-adhd](https://github.com/ayghri/i-have-adhd) and is intentionally not redistributed here. Install the upstream version globally for Pi:
 
@@ -124,24 +128,46 @@ npx skills update i-have-adhd -g
 
 Do not blindly overwrite an existing `settings.json`; merge the desired fields instead.
 
+### Subagent routing
+
+Main-agent routing is intentionally lightweight by default:
+
+| Resource | Role |
+| --- | --- |
+| `AGENTS.md` | Always-on short policy: prefer self for small known work; map common needs to agent types; avoid busywork delegation |
+| `skills/route-subagents/` | On-demand checklist for non-trivial tasks: classify → keep local vs delegate → choose type(s) → brief → parallel rules → verify |
+| SuperAgents skills | Deeper workflows already installed via packages: `delegating-to-subagents`, `dispatching-parallel-subagents`, `reviewing-subagent-work`, etc. |
+
+**Graded process (not a forced full plan every turn):**
+
+1. **Trivial** — do it locally; no routing ceremony.
+2. **Medium / multi-step** — decide before deep exploration or large edits; for a fuller checklist load `route-subagents` or run `/skill:route-subagents`.
+3. **Complex / multi-domain** — split into bounded assignments, choose types, and only parallelize when independence is clear.
+
+Default implementer is `worker`. Escalate to specialist agents only when the role clearly fits. After coding agents return, verify diffs yourself — summaries are not proof.
+
+Pi loads `AGENTS.md` as a context file from `~/.pi/agent/AGENTS.md` (and project/ancestor `AGENTS.md` files). Skills under `skills/` are discovered globally; force-load with `/skill:route-subagents` when needed. Run `/reload` or start a new session after changing either resource.
+
 ### Specialized subagents
 
-The files under `agents/` configure global specialized agents:
+The files under `agents/` configure global specialized agents used by `@tintinweb/pi-subagents`:
 
 | Agent | Model | Thinking | Role |
 | --- | --- | --- | --- |
 | `Explore` | `third-party/gpt-5.6-terra` | `high` | Codebase exploration |
-| `Plan` | `third-party/gpt-5.6-sol` | `max` | Planning with reviewer validation |
+| `Plan` | `third-party/gpt-5.6-sol` | `max` | Planning; plans should be reviewed before heavy implementation |
 | `frontend-engineer` | `third-party/gemini-3.6-flash-high` | model default | Frontend implementation |
-| `general-purpose` | `third-party/gpt-5.6-luna` | `max` | General tasks |
-| `Oracle` | `third-party/gpt-5.6-sol` | `max` | First-principles reflection and course correction |
-| `researcher` | `third-party/gpt-5.6-sol` | `high` | Research |
-| `reviewer` | `third-party/gpt-5.6-sol` | `xhigh` | Rigorous quality review |
-| `tester` | `third-party/gpt-5.6-sol` | `high` | Test design and verification |
-| `ui-leader` | `third-party/gemini-3.6-flash-high` | model default | UI design leadership |
-| `worker-auto` | `third-party/glm-5.2` | `max` | Automation and DevOps work |
-| `worker-pro-backend` | `third-party/gpt-5.6-sol` | `high` | Backend and DevOps work |
-| `worker` | `third-party/gpt-5.6-terra` | `medium` | Fast routine implementation |
+| `general-purpose` | `third-party/grok-4.5` | `medium` | Generic isolation / parent-twin style tasks |
+| `Oracle` | `third-party/gpt-5.6-sol` | `max` | Reflection, course correction, wasted-effort checks |
+| `researcher` | `third-party/grok-4.5` | `high` | Multi-source research / docs |
+| `reviewer` | `third-party/gpt-5.6-sol` | `xhigh` | Independent quality gate |
+| `tester` | `third-party/grok-build-0.1` | `high` | Test design, automation, and acceptance verification |
+| `ui-leader` | `third-party/gemini-3.6-flash-high` | model default | Product/IA/UI direction |
+| `worker-auto` | `third-party/grok-composer-2.5-fast` | model default | Automation and DevOps scripting (verify after) |
+| `worker-pro-backend` | `third-party/grok-build-0.1` | `high` | Heavy backend/infra when value justifies wait cost |
+| `worker` | `third-party/gpt-5.6-terra` | `medium` | Default fast routine implementation |
+
+Suggested need → type mapping lives in `AGENTS.md` and `skills/route-subagents/SKILL.md`.
 
 Pi discovers these files globally at `~/.pi/agent/agents/`. A project-specific file at `<project>/.pi/agents/<agent-name>.md` takes precedence over its global counterpart.
 
@@ -162,12 +188,12 @@ After changing a resource:
 ```powershell
 git status
 git diff
-git add settings.json extensions README.md
+git add settings.json extensions README.md AGENTS.md skills agents
 git commit -m "feat: describe the change"
 git push
 ```
 
-Inside Pi, run `/reload` after editing extensions.
+Inside Pi, run `/reload` after editing extensions, skills, prompts, themes, or context files such as `AGENTS.md`.
 
 ## Security
 
