@@ -7,7 +7,7 @@ Personal extensions and configuration for [Pi](https://pi.dev).
 
 ## Included resources
 
-- `extensions/pi-exa.ts` — Exa web search and page-fetch tools.
+- `extensions/pi-web.ts` — multi-provider web search and page-fetch tools with automatic Firecrawl → Tavily → Exa fallback.
 - `extensions/third-party-provider.ts` — dynamically discovers and registers models from an OpenAI-compatible third-party endpoint.
 - `settings.json` — global Pi preferences, package list, and default model selection.
 - `AGENTS.md` — lightweight main-agent routing policy for when to keep work local vs spawn subagents.
@@ -28,15 +28,30 @@ pi install git:github.com/JohnsonRan/pi-config@v0.1.0
 
 ## Configure the extensions
 
-### Exa tools
+### Web search and fetch tools
 
-`pi-exa.ts` can use Exa's anonymous endpoint. To avoid the shared anonymous rate limit, set an API key:
+The extension registers two provider-neutral tools:
+
+- `web_search` — search the web
+- `web_fetch` — fetch known webpages as clean markdown
+
+Requests use this provider order:
+
+1. **Firecrawl** when `FIRECRAWL_API_KEY` is set
+2. **Tavily** when `TAVILY_API_KEY` is set
+3. **Exa** as the final fallback; Exa's anonymous endpoint works without a key
+
+Set any provider keys you want to use:
 
 ```powershell
-[Environment]::SetEnvironmentVariable("EXA_API_KEY", "your-key", "User")
+[Environment]::SetEnvironmentVariable("FIRECRAWL_API_KEY", "fc-your-key", "User")
+[Environment]::SetEnvironmentVariable("TAVILY_API_KEY", "tvly-your-key", "User")
+[Environment]::SetEnvironmentVariable("EXA_API_KEY", "your-exa-key", "User")
 ```
 
-Restart the terminal after changing persistent environment variables.
+A provider is skipped when its key is absent. The extension automatically moves to the next provider for exhausted credits/plan limits, rate limits, invalid or unusable credentials, upstream `5xx` responses, timeouts, and network failures. Providers that return persistent quota, plan, or credential failures remain skipped for the rest of the current extension load, so later calls start with the next provider; run `/reload` after fixing a key or adding credits. Request validation failures such as malformed URLs or invalid parameters are reported immediately rather than hidden by fallback.
+
+Firecrawl and Tavily require API keys. `EXA_API_KEY` is optional, but setting it avoids Exa's shared anonymous rate limit. Restart the terminal after changing persistent environment variables.
 
 ### Third-party model provider
 
@@ -109,10 +124,9 @@ pi install git:github.com/xz-dev/SuperAgents-skill
 pi install git:github.com/xz-dev/i-read-the-code-skill
 pi install npm:@georgebashi/pi-retry
 pi install npm:browser-goblin
-pi install npm:@llblab/pi-telegram
 ```
 
-The workflow skill packages add structured human escalation, subagent delegation/review workflows, and evidence-grounded code-review handoffs. `@georgebashi/pi-retry` adds retry support for transient model-provider failures. `browser-goblin` adds browser testing tools/skills; `@llblab/pi-telegram` enables Telegram integration when configured.
+The workflow skill packages add structured human escalation, subagent delegation/review workflows, and evidence-grounded code-review handoffs. `@georgebashi/pi-retry` adds retry support for transient model-provider failures. `browser-goblin` adds browser testing tools/skills.
 
 The `i-have-adhd` skill is maintained by [ayghri/i-have-adhd](https://github.com/ayghri/i-have-adhd) and is intentionally not redistributed here. Install the upstream version globally for Pi:
 
