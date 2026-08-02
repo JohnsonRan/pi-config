@@ -113,10 +113,8 @@ The configuration references these separately maintained Pi packages:
 
 ```powershell
 pi install npm:pi-simplify
-pi install npm:@tintinweb/pi-tasks
-pi install git:github.com/xz-dev/conventional-commits-skill
 pi install npm:context-mode
-pi install npm:@tintinweb/pi-subagents
+pi install git:github.com/xz-dev/conventional-commits-skill
 pi install git:github.com/xz-dev/pi-continuity
 pi install npm:pi-powerline-footer
 pi install git:github.com/xz-dev/human-handoff-skill
@@ -124,9 +122,12 @@ pi install git:github.com/xz-dev/SuperAgents-skill
 pi install git:github.com/xz-dev/i-read-the-code-skill
 pi install npm:@georgebashi/pi-retry
 pi install npm:browser-goblin
+pi install git:github.com/xz-dev/pi-subagents-tintinweb
+pi install git:github.com/xz-dev/pi-tasks
+pi install git:github.com/xz-dev/pi-hermes-memory
 ```
 
-The workflow skill packages add structured human escalation, subagent delegation/review workflows, and evidence-grounded code-review handoffs. `@georgebashi/pi-retry` adds retry support for transient model-provider failures. `browser-goblin` adds browser testing tools/skills.
+The workflow skill packages add structured human escalation, subagent delegation/review workflows, evidence-grounded code-review handoffs, and persistent Hermes memory. The GitHub-hosted `pi-subagents-tintinweb` and `pi-tasks` packages replace the former npm package references. `@georgebashi/pi-retry` adds retry support for transient model-provider failures. `browser-goblin` adds browser testing tools/skills.
 
 The `i-have-adhd` skill is maintained by [ayghri/i-have-adhd](https://github.com/ayghri/i-have-adhd) and is intentionally not redistributed here. Install the upstream version globally for Pi:
 
@@ -169,17 +170,18 @@ The files under `agents/` configure global specialized agents used by `@tintinwe
 | Agent | Model | Thinking | Role |
 | --- | --- | --- | --- |
 | `Explore` | `third-party/gpt-5.6-terra` | `high` | Codebase exploration |
-| `Plan` | `third-party/gpt-5.6-sol` | `max` | Planning; plans should be reviewed before heavy implementation |
+| `Plan` | `third-party/deepseek-v4-flash` | `max` | Planning; plans should be reviewed before heavy implementation |
+| `code-merge-reviewer` | `third-party/gpt-5.6-luna` | `max` | Final pre-merge review focused on whether every changed hunk is necessary |
 | `frontend-engineer` | `third-party/gemini-3.6-flash-high` | model default | Frontend implementation |
-| `general-purpose` | `third-party/grok-4.5` | `medium` | Generic isolation / parent-twin style tasks |
-| `Oracle` | `third-party/gpt-5.6-sol` | `max` | Reflection, course correction, wasted-effort checks |
-| `researcher` | `third-party/grok-4.5` | `high` | Multi-source research / docs |
+| `general-purpose` | `third-party/gpt-5.6-luna` | `xhigh` | Generic isolation / parent-twin style tasks |
+| `Oracle` | `third-party/gpt-5.6-sol` | `max` | Reflection, course correction, and proactive detection of circular or wasted work |
+| `researcher` | `third-party/gpt-5.6-sol` | `high` | Multi-source research / docs |
 | `reviewer` | `third-party/gpt-5.6-sol` | `xhigh` | Independent quality gate |
-| `tester` | `third-party/grok-build-0.1` | `high` | Test design, automation, and acceptance verification |
-| `ui-leader` | `third-party/gemini-3.6-flash-high` | model default | Product/IA/UI direction |
-| `worker-auto` | `third-party/grok-composer-2.5-fast` | model default | Automation and DevOps scripting (verify after) |
-| `worker-pro-backend` | `third-party/grok-build-0.1` | `high` | Heavy backend/infra when value justifies wait cost |
-| `worker` | `third-party/gpt-5.6-terra` | `medium` | Default fast routine implementation |
+| `tester` | `third-party/gpt-5.6-sol` | `high` | Test design, automation, and acceptance verification |
+| `ui-leader` | `third-party/gemini-3.6-flash-high` | model default | Product/IA/UI direction, including optional visual mockups as implementation references |
+| `worker-auto` | `third-party/grok-4.5` | `high` | Fast automation work (verify after) |
+| `worker-pro-backend` | `third-party/gpt-5.6-sol` | `high` | Heavy backend/infra when value justifies wait cost |
+| `worker` | `third-party/grok-4.5` | `high` | Default fast routine implementation |
 
 Suggested need → type mapping lives in `AGENTS.md` and `skills/route-subagents/SKILL.md`.
 

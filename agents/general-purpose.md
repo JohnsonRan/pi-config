@@ -1,4 +1,4 @@
 ---
-model: third-party/grok-4.5
-thinking: medium
+model: third-party/gpt-5.6-luna
+thinking: xhigh
 ---
