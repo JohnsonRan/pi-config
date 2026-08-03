@@ -10,6 +10,8 @@ Personal extensions and configuration for [Pi](https://pi.dev).
 - `extensions/pi-web.ts` — multi-provider web search and page-fetch tools with automatic Firecrawl → Tavily → Exa fallback.
 - `extensions/third-party-provider.ts` — dynamically discovers and registers models from an OpenAI-compatible third-party endpoint.
 - `settings.json` — global Pi preferences, package list, and default model selection.
+- `pi-retry.json` — retryable provider-error patterns for the `pi-retry` extension.
+- `pi-continue-watchdog.json` — idle delay, retry limit, and continuation prompts for the `pi-continue-watchdog` extension.
 - `AGENTS.md` — lightweight main-agent routing policy for when to keep work local vs spawn subagents.
 - `skills/route-subagents/` — fuller pre-task checklist for classifying work, choosing `subagent_type`(s), briefing, and parallel rules.
 - `agents/*.md` — specialized subagent model, reasoning, and role overrides for planning, exploration, implementation, research, review, and testing.
@@ -114,20 +116,21 @@ The configuration references these separately maintained Pi packages:
 ```powershell
 pi install npm:pi-simplify
 pi install npm:context-mode
-pi install git:github.com/xz-dev/conventional-commits-skill
 pi install git:github.com/xz-dev/pi-continuity
 pi install npm:pi-powerline-footer
 pi install git:github.com/xz-dev/human-handoff-skill
 pi install git:github.com/xz-dev/SuperAgents-skill
 pi install git:github.com/xz-dev/i-read-the-code-skill
-pi install npm:@georgebashi/pi-retry
 pi install npm:browser-goblin
-pi install git:github.com/xz-dev/pi-subagents-tintinweb
 pi install git:github.com/xz-dev/pi-tasks
 pi install git:github.com/xz-dev/pi-hermes-memory
+pi install git:github.com/xz-dev/pi-continue-watchdog
+pi install git:github.com/xz-dev/conventional-commits-skill
+pi install git:github.com/xz-dev/pi-subagents
+pi install git:github.com/xz-dev/pi-retry
 ```
 
-The workflow skill packages add structured human escalation, subagent delegation/review workflows, evidence-grounded code-review handoffs, and persistent Hermes memory. The GitHub-hosted `pi-subagents-tintinweb` and `pi-tasks` packages replace the former npm package references. `@georgebashi/pi-retry` adds retry support for transient model-provider failures. `browser-goblin` adds browser testing tools/skills.
+The workflow skill packages add structured human escalation, subagent delegation/review workflows, evidence-grounded code-review handoffs, and persistent Hermes memory. The GitHub-hosted `pi-subagents`, `pi-tasks`, and `pi-retry` packages replace the previous subagent and retry package references. `pi-retry.json` lists provider errors that may be retried. `pi-continue-watchdog` can resume unfinished work after an idle delay, using the tracked `pi-continue-watchdog.json` limits and prompts. `browser-goblin` adds browser testing tools/skills.
 
 The `i-have-adhd` skill is maintained by [ayghri/i-have-adhd](https://github.com/ayghri/i-have-adhd) and is intentionally not redistributed here. Install the upstream version globally for Pi:
 
@@ -165,7 +168,7 @@ Pi loads `AGENTS.md` as a context file from `~/.pi/agent/AGENTS.md` (and project
 
 ### Specialized subagents
 
-The files under `agents/` configure global specialized agents used by `@tintinweb/pi-subagents`:
+The files under `agents/` configure global specialized agents used by `xz-dev/pi-subagents`:
 
 | Agent | Model | Thinking | Role |
 | --- | --- | --- | --- |
@@ -204,7 +207,7 @@ After changing a resource:
 ```powershell
 git status
 git diff
-git add settings.json extensions README.md AGENTS.md skills agents
+git add .gitignore settings.json pi-retry.json pi-continue-watchdog.json extensions README.md AGENTS.md skills agents
 git commit -m "feat: describe the change"
 git push
 ```

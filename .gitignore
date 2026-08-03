@@ -10,6 +10,8 @@
 
 # Tracked configuration (contains no credentials)
 !/settings.json
+!/pi-retry.json
+!/pi-continue-watchdog.json
 
 # Optional global Pi instructions and UI configuration
 !/AGENTS.md
