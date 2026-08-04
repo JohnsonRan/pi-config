@@ -1,0 +1,24 @@
+{
+  "events": {
+    "tool_execution_start:ask_user_question": {
+      "delayMs": 0,
+      "actions": [
+        "js:const cleanBody=(value)=>String(value??'').replace(/\\r\\n?/g,'\\n').replace(/[\\u0000-\\u0009\\u000b-\\u001f\\u007f-\\u009f]/g,'');const cleanHeader=(value)=>String(value??'').replace(/[\\r\\n\\u2028\\u2029]+/g,' ').replace(/[\\u0000-\\u001f\\u007f-\\u009f]/g,'');const cwd=cleanHeader(notification.cwd);const sessionId=cleanHeader(notification.sessionId);const rawHostname=process.env.HOSTNAME??process.getBuiltinModule('os').hostname();const hostname=cleanHeader(rawHostname).trim()||'unknown-host';const title='❓ Pi Question · '+hostname+' · '+cwd;const body=cleanBody(String(notification.tool)+' needs your input in '+cwd)+'\\nsession id: '+sessionId;notification.osc(title,body);const bark=process.getBuiltinModule('module').createRequire(process.getBuiltinModule('path').resolve(process.env.USERPROFILE||process.env.HOME,'.pi','agent','pi-notify.json'))('./pi-notify-bark.cjs');await bark.notify(pi,notification,title,body,{retractable:true})"
+      ]
+    }
+  },
+  "hooks": {
+    "user-ready": {
+      "delayMs": 0,
+      "actions": [
+        "js:const cleanBody=(value)=>String(value??'').replace(/\\r\\n?/g,'\\n').replace(/[\\u0000-\\u0009\\u000b-\\u001f\\u007f-\\u009f]/g,'');const cleanHeader=(value)=>String(value??'').replace(/[\\r\\n\\u2028\\u2029]+/g,' ').replace(/[\\u0000-\\u001f\\u007f-\\u009f]/g,'');const cwd=cleanHeader(notification.cwd);const sessionId=cleanHeader(notification.sessionId);const rawHostname=process.env.HOSTNAME??process.getBuiltinModule('os').hostname();const hostname=cleanHeader(rawHostname).trim()||'unknown-host';const bark=process.getBuiltinModule('module').createRequire(process.getBuiltinModule('path').resolve(process.env.USERPROFILE||process.env.HOME,'.pi','agent','pi-notify.json'))('./pi-notify-bark.cjs');const publish=async(rawTitle,rawMessage)=>{const title=cleanHeader(rawTitle)+' · '+hostname+' · '+cwd;const body=cleanBody(rawMessage)+'\\nsession id: '+sessionId;notification.osc(title,body);await bark.notify(pi,notification,title,body,{retractable:true})};const kind=notification.values.STOP_KIND;if(kind==='AI_UNLOCK')await publish('🙋 Pi Done',notification.values.REASON);else if(kind==='EXHAUSTED')await publish('🛑 Pi Continue stopped','Continue watchdog retry limit reached');else if(kind==='DECISION_FAILED')await publish('⚠️ Pi Continue failed','Continue watchdog decision failed')"
+      ]
+    },
+    "agent-notify": {
+      "delayMs": 0,
+      "actions": [
+        "js:const cleanBody=(value)=>String(value??'').replace(/\\r\\n?/g,'\\n').replace(/[\\u0000-\\u0009\\u000b-\\u001f\\u007f-\\u009f]/g,'');const cleanHeader=(value)=>String(value??'').replace(/[\\r\\n\\u2028\\u2029]+/g,' ').replace(/[\\u0000-\\u001f\\u007f-\\u009f]/g,'');if(typeof notification.values.TITLE==='string'&&typeof notification.values.CONTENT==='string'){const cwd=cleanHeader(notification.cwd);const sessionId=cleanHeader(notification.sessionId);const rawHostname=process.env.HOSTNAME??process.getBuiltinModule('os').hostname();const hostname=cleanHeader(rawHostname).trim()||'unknown-host';const title='🤖 '+cleanHeader(notification.values.TITLE)+' · '+hostname+' · '+cwd;const body=cleanBody(notification.values.CONTENT)+'\\nsession id: '+sessionId;notification.osc(title,body);const bark=process.getBuiltinModule('module').createRequire(process.getBuiltinModule('path').resolve(process.env.USERPROFILE||process.env.HOME,'.pi','agent','pi-notify.json'))('./pi-notify-bark.cjs');await bark.notify(pi,notification,title,body)}"
+      ]
+    }
+  }
+}

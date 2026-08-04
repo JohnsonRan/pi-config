@@ -11,6 +11,8 @@
 # Tracked configuration (contains no credentials)
 !/settings.json
 !/pi-retry.json
+!/pi-notify.json
+!/pi-notify-bark.cjs
 !/pi-continue-watchdog.json
 
 # Optional global Pi instructions and UI configuration

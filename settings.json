@@ -15,7 +15,8 @@
     "git:github.com/xz-dev/pi-continue-watchdog",
     "git:github.com/xz-dev/conventional-commits-skill",
     "git:github.com/xz-dev/pi-subagents",
-    "git:github.com/xz-dev/pi-retry"
+    "git:github.com/xz-dev/pi-retry",
+    "git:github.com/xz-dev/pi-notify"
   ],
   "defaultProvider": "third-party",
   "defaultModel": "gpt-5.6-sol",

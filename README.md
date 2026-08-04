@@ -12,6 +12,8 @@ Personal extensions and configuration for [Pi](https://pi.dev).
 - `settings.json` — global Pi preferences, package list, and default model selection.
 - `pi-retry.json` — retryable provider-error patterns for the `pi-retry` extension.
 - `pi-continue-watchdog.json` — idle delay, retry limit, and continuation prompts for the `pi-continue-watchdog` extension.
+- `pi-notify.json` — trusted notification actions for questions, completed work, and continuation-watchdog outcomes.
+- `pi-notify-bark.cjs` — local Bark push companion with automatic withdrawal of retractable notifications after interactive input.
 - `AGENTS.md` — lightweight main-agent routing policy for when to keep work local vs spawn subagents.
 - `skills/route-subagents/` — fuller pre-task checklist for classifying work, choosing `subagent_type`(s), briefing, and parallel rules.
 - `agents/*.md` — specialized subagent model, reasoning, and role overrides for planning, exploration, implementation, research, review, and testing.
@@ -128,9 +130,10 @@ pi install git:github.com/xz-dev/pi-continue-watchdog
 pi install git:github.com/xz-dev/conventional-commits-skill
 pi install git:github.com/xz-dev/pi-subagents
 pi install git:github.com/xz-dev/pi-retry
+pi install git:github.com/xz-dev/pi-notify
 ```
 
-The workflow skill packages add structured human escalation, subagent delegation/review workflows, evidence-grounded code-review handoffs, and persistent Hermes memory. The GitHub-hosted `pi-subagents`, `pi-tasks`, and `pi-retry` packages replace the previous subagent and retry package references. `pi-retry.json` lists provider errors that may be retried. `pi-continue-watchdog` can resume unfinished work after an idle delay, using the tracked `pi-continue-watchdog.json` limits and prompts. `browser-goblin` adds browser testing tools/skills.
+The workflow skill packages add structured human escalation, subagent delegation/review workflows, evidence-grounded code-review handoffs, and persistent Hermes memory. The GitHub-hosted `pi-subagents`, `pi-tasks`, and `pi-retry` packages replace the previous subagent and retry package references. `pi-retry.json` lists provider errors that may be retried. `pi-continue-watchdog` can resume unfinished work after an idle delay, using the tracked `pi-continue-watchdog.json` limits and prompts. `pi-notify` dispatches the tracked notification actions described below. `browser-goblin` adds browser testing tools/skills.
 
 The `i-have-adhd` skill is maintained by [ayghri/i-have-adhd](https://github.com/ayghri/i-have-adhd) and is intentionally not redistributed here. Install the upstream version globally for Pi:
 
@@ -145,6 +148,24 @@ npx skills update i-have-adhd -g
 ```
 
 Do not blindly overwrite an existing `settings.json`; merge the desired fields instead.
+
+### Notifications and Bark
+
+`pi-notify.json` publishes OSC notifications and Bark pushes for:
+
+- tools that require user input;
+- successful agent completion and explicit `agent-notify` messages;
+- continuation-watchdog exhaustion or decision failures.
+
+Bark delivery is handled by `pi-notify-bark.cjs`. Create an untracked `~/.pi/agent/pi-notify-bark.secret` containing one HTTP(S) Bark push URL whose final path segment is the device key, for example:
+
+```text
+https://api.day.app/your-device-key
+```
+
+The helper derives the server's `/push` JSON endpoint from that URL, sends notifications in the `pi-notify` group, and never stores the device key in tracked configuration. Notifications that ask for input or announce completion use a generated Bark message ID; the helper deletes them when the next interactive input arrives. Non-interactive or programmatic input does not withdraw them.
+
+The tracked actions currently load the CommonJS helper relative to `C:/Users/JohnsonRan/.pi/agent/pi-notify.json` with Node's `createRequire`. This avoids dynamic `import()` because pi-notify evaluates trusted `js:` actions through `Function`, where an import callback may be unavailable. Adjust the `createRequire` file URLs in `pi-notify.json` when using a different Pi configuration path. Keep `pi-notify-bark.secret` local and never commit it.
 
 ### Subagent routing
 
@@ -173,15 +194,15 @@ The files under `agents/` configure global specialized agents used by `xz-dev/pi
 | Agent | Model | Thinking | Role |
 | --- | --- | --- | --- |
 | `Explore` | `third-party/gpt-5.6-terra` | `high` | Codebase exploration |
-| `Plan` | `third-party/deepseek-v4-flash` | `max` | Planning; plans should be reviewed before heavy implementation |
+| `Plan` | `third-party/kmc/k3` | `max` | Planning; plans should be reviewed before heavy implementation |
 | `code-merge-reviewer` | `third-party/gpt-5.6-luna` | `max` | Final pre-merge review focused on whether every changed hunk is necessary |
-| `frontend-engineer` | `third-party/gemini-3.6-flash-high` | model default | Frontend implementation |
+| `frontend-engineer` | `third-party/kmc/k3` | `max` | Frontend implementation |
 | `general-purpose` | `third-party/gpt-5.6-luna` | `xhigh` | Generic isolation / parent-twin style tasks |
 | `Oracle` | `third-party/gpt-5.6-sol` | `max` | Reflection, course correction, and proactive detection of circular or wasted work |
 | `researcher` | `third-party/gpt-5.6-sol` | `high` | Multi-source research / docs |
 | `reviewer` | `third-party/gpt-5.6-sol` | `xhigh` | Independent quality gate |
 | `tester` | `third-party/gpt-5.6-sol` | `high` | Test design, automation, and acceptance verification |
-| `ui-leader` | `third-party/gemini-3.6-flash-high` | model default | Product/IA/UI direction, including optional visual mockups as implementation references |
+| `ui-leader` | `third-party/kmc/k3` | `max` | Product/IA/UI direction, including optional visual mockups as implementation references |
 | `worker-auto` | `third-party/grok-4.5` | `high` | Fast automation work (verify after) |
 | `worker-pro-backend` | `third-party/gpt-5.6-sol` | `high` | Heavy backend/infra when value justifies wait cost |
 | `worker` | `third-party/grok-4.5` | `high` | Default fast routine implementation |
@@ -207,7 +228,7 @@ After changing a resource:
 ```powershell
 git status
 git diff
-git add .gitignore settings.json pi-retry.json pi-continue-watchdog.json extensions README.md AGENTS.md skills agents
+git add .gitignore settings.json pi-retry.json pi-continue-watchdog.json pi-notify.json pi-notify-bark.cjs extensions README.md AGENTS.md skills agents
 git commit -m "feat: describe the change"
 git push
 ```
@@ -221,7 +242,7 @@ Never commit:
 - `auth.json` or provider credentials
 - `sessions/` or exported conversations
 - `trust.json`
-- `.env` files or literal API keys
+- `.env` files, `pi-notify-bark.secret`, or literal API keys
 - `cache/`, `npm/`, `git/`, `.pi/`, or generated model stores
 
 Configuration files committed to this repository must not contain endpoint credentials. Provider API keys and private base URLs belong in environment variables.
