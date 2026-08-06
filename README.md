@@ -16,7 +16,7 @@ Personal extensions and configuration for [Pi](https://pi.dev).
 - `pi-notify-bark.cjs` — local Bark push companion with automatic withdrawal of retractable notifications after interactive input.
 - `AGENTS.md` — lightweight main-agent routing policy for when to keep work local vs spawn subagents.
 - `skills/route-subagents/` — fuller pre-task checklist for classifying work, choosing `subagent_type`(s), briefing, and parallel rules.
-- `agents/*.md` — specialized subagent model, reasoning, and role overrides for planning, exploration, implementation, research, review, and testing.
+- `agents/*.md` — specialized subagent definitions with model/reasoning overrides, inherited-context rules, default artifacts, and focused prompts for planning, implementation, research, review, and testing.
 
 ## Install as a Pi package
 
@@ -183,7 +183,7 @@ Main-agent routing is intentionally lightweight by default:
 2. **Medium / multi-step** — decide before deep exploration or large edits; for a fuller checklist load `route-subagents` or run `/skill:route-subagents`.
 3. **Complex / multi-domain** — split into bounded assignments, choose types, and only parallelize when independence is clear.
 
-Default implementer is `worker`. Escalate to specialist agents only when the role clearly fits. After coding agents return, verify diffs yourself — summaries are not proof.
+Default implementer is `worker`. Use the built-in `scout` for codebase exploration and `delegate` for generic isolated work; `settings.json` overrides both to `third-party/gpt-5.6-luna` with `xhigh` thinking and a `third-party/deepseek-v4-flash:max` fallback. Escalate to specialist agents only when the role clearly fits. After coding agents return, verify diffs yourself — summaries are not proof.
 
 Pi loads `AGENTS.md` as a context file from `~/.pi/agent/AGENTS.md` (and project/ancestor `AGENTS.md` files). Skills under `skills/` are discovered globally; force-load with `/skill:route-subagents` when needed. Run `/reload` or start a new session after changing either resource.
 
@@ -193,19 +193,20 @@ The files under `agents/` configure global specialized agents used by `xz-dev/pi
 
 | Agent | Model | Thinking | Role |
 | --- | --- | --- | --- |
-| `Explore` | `third-party/gpt-5.6-terra` | `high` | Codebase exploration |
-| `Plan` | `third-party/kmc/k3` | `max` | Planning; plans should be reviewed before heavy implementation |
-| `code-merge-reviewer` | `third-party/gpt-5.6-luna` | `max` | Final pre-merge review focused on whether every changed hunk is necessary |
-| `frontend-engineer` | `third-party/kmc/k3` | `max` | Frontend implementation |
-| `general-purpose` | `third-party/gpt-5.6-luna` | `xhigh` | Generic isolation / parent-twin style tasks |
-| `Oracle` | `third-party/gpt-5.6-sol` | `max` | Reflection, course correction, and proactive detection of circular or wasted work |
-| `researcher` | `third-party/gpt-5.6-sol` | `high` | Multi-source research / docs |
-| `reviewer` | `third-party/gpt-5.6-sol` | `xhigh` | Independent quality gate |
-| `tester` | `third-party/gpt-5.6-sol` | `high` | Test design, automation, and acceptance verification |
+| `scout` (built-in override) | `third-party/gpt-5.6-luna` | `xhigh` | Fast codebase exploration and compressed context handoff |
+| `delegate` (built-in override) | `third-party/gpt-5.6-luna` | `xhigh` | Generic isolated work with no default reads |
+| `Plan` | `third-party/kmc/k3` | `high` | Read-only planning that writes `plan.md` from inherited context and research |
+| `code-merge-reviewer` | `third-party/gpt-5.6-luna` | `max` | Final pre-push/merge necessity review |
+| `frontend-engineer` | `third-party/kmc/k3` | `max` | Production frontend implementation with browser-backed verification |
+| `Oracle` (`oracle`) | `third-party/gpt-5.6-sol` | `max` | Project/plan reflection and course correction, not routine implementation |
+| `researcher` | `third-party/gpt-5.6-terra` | `high` | Source-backed multi-provider research that writes `research.md` when requested |
+| `reviewer` | `third-party/gpt-5.6-sol` | `medium` | Focused quality gate for an individual implementation step |
+| `reviewer-final` | `third-party/gpt-5.6-sol` | `xhigh` | Final rigorous quality gate after implementation and verification |
+| `tester` | `third-party/gpt-5.6-sol` | `medium` | Test design, automation, manual acceptance, and verification |
 | `ui-leader` | `third-party/kmc/k3` | `max` | Product/IA/UI direction, including optional visual mockups as implementation references |
-| `worker-auto` | `third-party/grok-4.5` | `high` | Fast automation work (verify after) |
-| `worker-pro-backend` | `third-party/gpt-5.6-sol` | `high` | Heavy backend/infra when value justifies wait cost |
-| `worker` | `third-party/grok-4.5` | `high` | Default fast routine implementation |
+| `worker-auto` | `third-party/grok-4.5` | `high` | Fast automation work (verify independently afterward) |
+| `worker-pro-backend` | `third-party/gpt-5.6-sol` | `xhigh` | Heavy backend/infra work when its higher latency is justified |
+| `worker` | `third-party/deepseek-v4-flash` | `max` | Default routine implementation; aliases: `developer`, `coder`, `implementer`, `develop` |
 
 Suggested need → type mapping lives in `AGENTS.md` and `skills/route-subagents/SKILL.md`.
 

@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.83.0",
+  "lastChangelogVersion": "0.84.0",
   "theme": "dark",
   "packages": [
     "npm:pi-simplify",
@@ -52,6 +52,24 @@
       "showUnstaged": true,
       "showUntracked": true,
       "polling": "full"
+    }
+  },
+  "subagents": {
+    "agentOverrides": {
+      "scout": {
+        "model": "third-party/gpt-5.6-luna",
+        "thinking": "xhigh",
+        "fallbackModels": [
+          "third-party/deepseek-v4-flash:max"
+        ]
+      },
+      "delegate": {
+        "model": "third-party/gpt-5.6-luna",
+        "thinking": "xhigh",
+        "fallbackModels": [
+          "third-party/deepseek-v4-flash:max"
+        ]
+      }
     }
   }
 }
