@@ -99,8 +99,8 @@ async function post(target, payload) {
   }
 }
 
-function enqueueWithdrawals(state) {
-  const receipts = [...state.pending.values()];
+function enqueueWithdrawals(state, predicate = () => true) {
+  const receipts = [...state.pending.values()].filter(predicate);
   if (receipts.length === 0) return;
 
   state.withdrawalQueue = state.withdrawalQueue.then(async () => {
@@ -109,11 +109,30 @@ function enqueueWithdrawals(state) {
       try {
         await post(receipt.target, { id: receipt.id, delete: "1" });
         if (state.pending.get(receipt.id) === receipt) state.pending.delete(receipt.id);
+        const timer = state.withdrawalTimers.get(receipt.id);
+        if (timer) clearTimeout(timer);
+        state.withdrawalTimers.delete(receipt.id);
       } catch (error) {
         console.warn(`[pi-notify-bark] Withdrawal failed: ${errorMessage(error)}`);
       }
     }
   });
+}
+
+function scheduleWithdrawal(state, receipt) {
+  const delayMs = Math.max(0, receipt.retractNotBefore - Date.now());
+  if (delayMs === 0) {
+    enqueueWithdrawals(state, (candidate) => candidate === receipt);
+    return;
+  }
+  if (state.withdrawalTimers.has(receipt.id)) return;
+
+  const timer = setTimeout(() => {
+    state.withdrawalTimers.delete(receipt.id);
+    enqueueWithdrawals(state, (candidate) => candidate === receipt);
+  }, delayMs);
+  timer.unref?.();
+  state.withdrawalTimers.set(receipt.id, timer);
 }
 
 function stateFor(pi) {
@@ -123,6 +142,9 @@ function stateFor(pi) {
   const state = {
     inputGeneration: 0,
     pending: new Map(),
+    armedToolCalls: new Set(),
+    completedToolCalls: new Set(),
+    withdrawalTimers: new Map(),
     withdrawalQueue: Promise.resolve(),
     closed: false,
   };
@@ -135,10 +157,20 @@ function stateFor(pi) {
     return { action: "continue" };
   });
 
+  pi.on("tool_execution_end", (event) => {
+    if (typeof event.toolCallId !== "string") return;
+    if (state.armedToolCalls.has(event.toolCallId)) state.completedToolCalls.add(event.toolCallId);
+    for (const receipt of state.pending.values()) {
+      if (receipt.retractOnToolEnd === event.toolCallId) scheduleWithdrawal(state, receipt);
+    }
+  });
+
   pi.on("session_shutdown", () => {
     state.closed = true;
     state.inputGeneration += 1;
     states.delete(pi);
+    for (const timer of state.withdrawalTimers.values()) clearTimeout(timer);
+    state.withdrawalTimers.clear();
     enqueueWithdrawals(state);
   });
 
@@ -152,25 +184,56 @@ async function notify(pi, _notification, title, body, options = {}) {
   if (state.closed) return;
 
   const retractable = options.retractable === true;
+  const retractOnToolEnd =
+    typeof options.retractOnToolEnd === "string" && options.retractOnToolEnd
+      ? options.retractOnToolEnd
+      : undefined;
+  const retractDelayMs =
+    Number.isFinite(options.retractDelayMs) && options.retractDelayMs >= 0
+      ? options.retractDelayMs
+      : 0;
   const generation = state.inputGeneration;
-  const target = await readTarget();
   const id = retractable ? randomUUID() : undefined;
-  const payload = {
-    title: String(title ?? ""),
-    body: String(body ?? ""),
-    group: "pi-notify",
-    ...(id ? { id } : {}),
-  };
+  if (id && retractOnToolEnd) state.armedToolCalls.add(retractOnToolEnd);
 
-  await post(target, payload);
+  let target;
+  try {
+    target = await readTarget();
+    const payload = {
+      title: String(title ?? ""),
+      body: String(body ?? ""),
+      group: "pi-notify",
+      ...(id ? { id } : {}),
+    };
+    await post(target, payload);
+  } catch (error) {
+    if (id && retractOnToolEnd) {
+      state.armedToolCalls.delete(retractOnToolEnd);
+      state.completedToolCalls.delete(retractOnToolEnd);
+    }
+    throw error;
+  }
 
   if (!id) return;
-  const receipt = Object.freeze({ id, target });
+  if (retractOnToolEnd) state.armedToolCalls.delete(retractOnToolEnd);
+  const toolAlreadyEnded =
+    !!retractOnToolEnd && state.completedToolCalls.delete(retractOnToolEnd);
+  const receipt = Object.freeze({
+    id,
+    target,
+    retractOnToolEnd,
+    retractNotBefore: Date.now() + retractDelayMs,
+  });
   state.pending.set(id, receipt);
 
-  // If the user replied, the session shut down, or input raced the network
-  // request, retract this just-delivered notification immediately.
-  if (state.closed || state.inputGeneration !== generation) enqueueWithdrawals(state);
+  // Explicit interactive input and shutdown can retract immediately. A tool
+  // completion uses its configured grace period so a fast answer cannot race
+  // the original push off the device before it is displayed.
+  if (state.closed || state.inputGeneration !== generation) {
+    enqueueWithdrawals(state, (candidate) => candidate === receipt);
+  } else if (toolAlreadyEnded) {
+    scheduleWithdrawal(state, receipt);
+  }
 }
 
 module.exports = Object.freeze({

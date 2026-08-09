@@ -163,9 +163,11 @@ Bark delivery is handled by `pi-notify-bark.cjs`. Create an untracked `~/.pi/age
 https://api.day.app/your-device-key
 ```
 
-The helper derives the server's `/push` JSON endpoint from that URL, sends notifications in the `pi-notify` group, and never stores the device key in tracked configuration. Notifications that ask for input or announce completion use a generated Bark message ID; the helper deletes them when the next interactive input arrives. Non-interactive or programmatic input does not withdraw them.
+The helper derives the server's `/push` JSON endpoint from that URL, sends notifications in the `pi-notify` group, and never stores the device key in tracked configuration. Retractable notifications use a locally generated Bark message ID and are withdrawn by POSTing the same `id` with `delete: "1"`.
 
-The tracked actions currently load the CommonJS helper relative to `C:/Users/JohnsonRan/.pi/agent/pi-notify.json` with Node's `createRequire`. This avoids dynamic `import()` because pi-notify evaluates trusted `js:` actions through `Function`, where an import callback may be unavailable. Adjust the `createRequire` file URLs in `pi-notify.json` when using a different Pi configuration path. Keep `pi-notify-bark.secret` local and never commit it.
+Question notifications are associated with the originating tool call. After the question tool finishes, withdrawal is delayed until the push has been accepted for at least 60 seconds, preventing a fast answer from racing the original notification off the device before it can be displayed. Completion notifications are withdrawn immediately when the next interactive Pi input arrives. RPC and extension-injected inputs do not trigger immediate withdrawal. Session shutdown cancels delayed timers and attempts to withdraw remaining notifications.
+
+The tracked actions locate `pi-notify.json` from `USERPROFILE` or `HOME`, then load `./pi-notify-bark.cjs` with Node's `createRequire`. This avoids dynamic `import()` because pi-notify evaluates trusted `js:` actions through `Function`, where an import callback may be unavailable. Keep `pi-notify-bark.secret` local and never commit it. Because Node caches the CommonJS helper, restart Pi after changing `pi-notify-bark.cjs`.
 
 ### Subagent routing
 
