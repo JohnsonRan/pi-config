@@ -1,51 +1,42 @@
 # JohnsonRan Pi Config
 
-Personal extensions and configuration for [Pi](https://pi.dev).
+Personal extensions and global configuration for [Pi](https://pi.dev).
 
-> [!WARNING]
-> Pi extensions execute with the current user's full system permissions. Review the source before installing this package.
+> **Security:** Pi extensions run with the current user's full system permissions. Review the source before installing.
 
-## Included resources
+## What's included
 
-- `extensions/pi-web.ts` — multi-provider web search and page-fetch tools with automatic Firecrawl → Tavily → Exa fallback.
-- `extensions/third-party-provider.ts` — dynamically discovers and registers models from an OpenAI-compatible third-party endpoint.
-- `settings.json` — global Pi preferences, package list, and default model selection.
-- `pi-retry.json` — retryable provider-error patterns for the `pi-retry` extension.
-- `pi-continue-watchdog.json` — idle delay, retry limit, and continuation prompts for the `pi-continue-watchdog` extension.
-- `pi-notify.json` — trusted notification actions for questions, completed work, and continuation-watchdog outcomes.
-- `pi-notify-bark.cjs` — local Bark push companion with automatic withdrawal of retractable notifications after interactive input.
-- `AGENTS.md` — lightweight main-agent routing policy for when to keep work local vs spawn subagents.
-- `skills/route-subagents/` — fuller pre-task checklist for classifying work, choosing `subagent_type`(s), briefing, and parallel rules.
-- `agents/*.md` — specialized subagent definitions with model/reasoning overrides, inherited-context rules, default artifacts, and focused prompts for planning, implementation, research, review, and testing.
+- `extensions/pi-web.ts` — `web_search` and `web_fetch`, with Firecrawl → Tavily → Exa fallback.
+- `extensions/third-party-provider.ts` — registers models from an OpenAI-compatible provider and discovers metadata from `/models` and public catalogs.
+- `settings.json` — global preferences, packages, and default model.
+- `pi-retry.json` and `pi-continue-watchdog.json` — retry and continuation-watchdog settings.
+- `pi-notify.json` and `pi-notify-bark.cjs` — OSC/Bark notifications and retraction support.
+- `agents/*.md` — specialized subagent definitions.
 
-## Install as a Pi package
+## Install
 
 ```powershell
 pi install git:github.com/JohnsonRan/pi-config
 ```
 
-Pi loads the extensions declared in `package.json`. Installed packages run with full system access, so pin a reviewed release when possible:
+Pi reads the extensions declared in `package.json`. Installed packages have full system access. This repository currently has no release tag to pin.
 
-```powershell
-pi install git:github.com/JohnsonRan/pi-config@v0.1.0
-```
+## Configure
 
-## Configure the extensions
-
-### Web search and fetch tools
+### Web search and fetch
 
 The extension registers two provider-neutral tools:
 
-- `web_search` — search the web
-- `web_fetch` — fetch known webpages as clean markdown
+- `web_search` — search the web.
+- `web_fetch` — fetch a valid HTTP(S) URL as clean Markdown; URLs with embedded credentials are rejected.
 
-Requests use this provider order:
+Providers are tried in this order:
 
-1. **Firecrawl** when `FIRECRAWL_API_KEY` is set
-2. **Tavily** when `TAVILY_API_KEY` is set
-3. **Exa** as the final fallback; Exa's anonymous endpoint works without a key
+1. Firecrawl, when `FIRECRAWL_API_KEY` is set
+2. Tavily, when `TAVILY_API_KEY` is set
+3. Exa, including its anonymous endpoint when `EXA_API_KEY` is absent
 
-Set any provider keys you want to use:
+Firecrawl and Tavily require keys. An Exa key avoids the shared anonymous rate limit. Missing keys skip that provider; rate limits, quota/credential failures, upstream `5xx` responses, timeouts, and network failures fall through to the next provider. Persistent quota, plan, or credential failures remain disabled for the current extension load, so run `/reload` after fixing a key or adding credits. Invalid URLs and parameters fail immediately instead of being hidden by fallback.
 
 ```powershell
 [Environment]::SetEnvironmentVariable("FIRECRAWL_API_KEY", "fc-your-key", "User")
@@ -53,67 +44,54 @@ Set any provider keys you want to use:
 [Environment]::SetEnvironmentVariable("EXA_API_KEY", "your-exa-key", "User")
 ```
 
-A provider is skipped when its key is absent. The extension automatically moves to the next provider for exhausted credits/plan limits, rate limits, invalid or unusable credentials, upstream `5xx` responses, timeouts, and network failures. Providers that return persistent quota, plan, or credential failures remain skipped for the rest of the current extension load, so later calls start with the next provider; run `/reload` after fixing a key or adding credits. Request validation failures such as malformed URLs or invalid parameters are reported immediately rather than hidden by fallback.
-
-Firecrawl and Tavily require API keys. `EXA_API_KEY` is optional, but setting it avoids Exa's shared anonymous rate limit. Restart the terminal after changing persistent environment variables.
-
 ### Third-party model provider
 
-Required variables:
+Required:
 
 ```powershell
 [Environment]::SetEnvironmentVariable("PI_THIRD_PARTY_BASE_URL", "https://your-provider.example/v1", "User")
 [Environment]::SetEnvironmentVariable("THIRD_PARTY_API_KEY", "your-key", "User")
 ```
 
-Common optional variables:
-
-| Variable | Purpose | Default |
-| --- | --- | --- |
-| `PI_THIRD_PARTY_PROVIDER_ID` | Pi provider identifier | `third-party` |
-| `PI_THIRD_PARTY_PROVIDER_NAME` | Display name | `Third-party API` |
-| `PI_THIRD_PARTY_API` | Pi API adapter | `openai-responses` |
-| `PI_THIRD_PARTY_MODELS_FILE` | Metadata override file | `~/.pi/agent/third-party-models.json` |
-| `PI_THIRD_PARTY_CONTEXT_WINDOW` | Fallback context window | `128000` |
-| `PI_THIRD_PARTY_MAX_TOKENS` | Fallback maximum output | `16384` |
-| `PI_THIRD_PARTY_CATALOG` | Set to `off` to disable models.dev metadata | enabled |
-| `PI_THIRD_PARTY_CATALOG_FILE` | Local models.dev-compatible catalog | none |
-| `PI_THIRD_PARTY_PI_CATALOG` | Set to `off` to disable Pi catalog metadata | enabled |
-| `PI_THIRD_PARTY_PI_CATALOG_PROVIDERS` | Comma-separated Pi catalog providers | extension defaults |
-| `PI_THIRD_PARTY_PI_CATALOG_FILE` | Local Pi catalog file | none |
-
-Models and their metadata are discovered automatically from the provider's `/models` endpoint and the public catalogs. No model metadata file is included or required. `PI_THIRD_PARTY_MODELS_FILE` remains available only as an optional escape hatch for local overrides. Keep endpoint credentials in environment variables rather than configuration files.
-
-The provider defaults to Pi's `openai-responses` adapter, which sends model requests to `<baseUrl>/responses`. The configured gateway must implement the OpenAI Responses API. For a legacy gateway that only supports Chat Completions, explicitly set:
+The default adapter is `openai-responses`, so the gateway must implement the Responses API at `<baseUrl>/responses`. For a Chat Completions-only gateway:
 
 ```powershell
 [Environment]::SetEnvironmentVariable("PI_THIRD_PARTY_API", "openai-completions", "User")
 ```
 
-Restart the terminal and Pi after changing the persistent adapter setting.
+Useful optional variables:
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `PI_THIRD_PARTY_PROVIDER_ID` | `third-party` | Pi provider ID |
+| `PI_THIRD_PARTY_PROVIDER_NAME` | `Third-party API` | Display name |
+| `PI_THIRD_PARTY_API` | `openai-responses` | API adapter |
+| `PI_THIRD_PARTY_MODELS_FILE` | `~/.pi/agent/third-party-models.json` | Local metadata override |
+| `PI_THIRD_PARTY_CONTEXT_WINDOW` | `128000` | Fallback context window |
+| `PI_THIRD_PARTY_MAX_TOKENS` | `16384` | Fallback output limit |
+| `PI_THIRD_PARTY_CATALOG` | enabled | Set to `off` to disable models.dev metadata |
+| `PI_THIRD_PARTY_PI_CATALOG` | enabled | Set to `off` to disable Pi catalog metadata |
+
+Models are loaded from the provider's `/models` endpoint. Metadata can also come from models.dev and Pi's catalog; local catalog files and provider filters are supported through the corresponding `PI_THIRD_PARTY_*` variables in `extensions/third-party-provider.ts`.
 
 ### CLIProxyAPI WebSocket transport
 
-The third-party provider includes an opt-in Responses WebSocket transport designed for CLIProxyAPI. It uses the normal CLIProxyAPI bearer key and connects to `<baseUrl>/responses`; unlike Pi's built-in `openai-codex-responses` adapter, it does not require a ChatGPT JWT or add `/codex/responses`.
-
-Select the transport through Pi's global **Settings → Transport** option. The provider follows that setting directly.
+Select the transport in Pi's **Settings → Transport** menu:
 
 | Transport | Behavior |
 | --- | --- |
-| `sse` | Standard Responses HTTP/SSE transport; the default and most compatible mode. |
-| `auto` | Try WebSocket first and fall back to SSE only if the connection fails before the request is sent. Reuses session connections and sends incremental follow-ups when safe. |
-| `websocket` | Require WebSocket, reuse the session connection, and send full context on each request. |
-| `websocket-cached` | Require WebSocket and use `previous_response_id` plus incremental input when the session state matches. |
+| `sse` | Standard Responses HTTP/SSE; default |
+| `auto` | Try WebSocket, then fall back to SSE before sending the request |
+| `websocket` | Require WebSocket and send full context |
+| `websocket-cached` | Require WebSocket and reuse matching session state incrementally |
 
-CLIProxyAPI must expose WebSocket upgrades on `/v1/responses` (assuming the configured base URL ends in `/v1`). For end-to-end WebSocket transport, the selected CLIProxyAPI Codex auth must also enable `websockets: true`; otherwise the Pi-to-proxy leg can use WebSocket while CLIProxyAPI uses HTTP/SSE upstream.
-
-`auto` is recommended because it preserves SSE fallback for WebSocket handshake, proxy, or endpoint failures before the request is sent. After Pi attempts to send `response.create`, errors are returned instead of replaying the request over SSE, avoiding duplicate generation, billing, tool calls, or other side effects.
+For CLIProxyAPI, expose WebSocket upgrades on `/v1/responses` and use the normal bearer key. To use WebSocket end to end, enable `websockets: true` in the selected CLIProxyAPI Codex auth. `auto` falls back to SSE only when the WebSocket fails before the request is sent; after `response.create`, errors are returned without replaying the request, avoiding duplicate generation, billing, tool calls, or other side effects.
 
 ## Global setup
 
-`settings.json` is tracked directly because it contains preferences and package declarations, not credentials. Installing this repository at `~/.pi/agent` makes it the active global configuration; when adopting only parts of this repository, merge the desired fields into an existing settings file instead of overwriting it blindly.
+To use this repository as the active global configuration, install or clone it at `~/.pi/agent`. If you already have a Pi configuration, merge selected fields from `settings.json` rather than overwriting it.
 
-The configuration references these separately maintained Pi packages:
+The tracked settings reference these separately maintained Pi packages:
 
 ```powershell
 pi install npm:pi-simplify
@@ -133,122 +111,82 @@ pi install git:github.com/xz-dev/pi-retry
 pi install git:github.com/xz-dev/pi-notify
 ```
 
-The workflow skill packages add structured human escalation, subagent delegation/review workflows, evidence-grounded code-review handoffs, and persistent Hermes memory. The GitHub-hosted `pi-subagents`, `pi-tasks`, and `pi-retry` packages replace the previous subagent and retry package references. `pi-retry.json` lists provider errors that may be retried. `pi-continue-watchdog` can resume unfinished work after an idle delay, using the tracked `pi-continue-watchdog.json` limits and prompts. `pi-notify` dispatches the tracked notification actions described below. `browser-goblin` adds browser testing tools/skills.
-
-The `i-have-adhd` skill is maintained by [ayghri/i-have-adhd](https://github.com/ayghri/i-have-adhd) and is intentionally not redistributed here. Install the upstream version globally for Pi:
+`i-have-adhd` is intentionally not bundled. Install and update it from upstream:
 
 ```powershell
 npx skills add ayghri/i-have-adhd -a pi -y -g
-```
-
-Update it from upstream with:
-
-```powershell
 npx skills update i-have-adhd -g
 ```
 
-Do not blindly overwrite an existing `settings.json`; merge the desired fields instead.
-
-### Notifications and Bark
-
-`pi-notify.json` publishes OSC notifications and Bark pushes for:
-
-- tools that require user input;
-- successful agent completion and explicit `agent-notify` messages;
-- continuation-watchdog exhaustion or decision failures.
-
-Bark delivery is handled by `pi-notify-bark.cjs`. Create an untracked `~/.pi/agent/pi-notify-bark.secret` containing one HTTP(S) Bark push URL whose final path segment is the device key, for example:
-
-```text
-https://api.day.app/your-device-key
-```
-
-The helper derives the server's `/push` JSON endpoint from that URL, sends notifications in the `pi-notify` group, and never stores the device key in tracked configuration. Retractable notifications use a locally generated Bark message ID and are withdrawn by POSTing the same `id` with `delete: "1"`.
-
-Question notifications are associated with the originating tool call. After the question tool finishes, withdrawal is delayed until the push has been accepted for at least 60 seconds, preventing a fast answer from racing the original notification off the device before it can be displayed. Completion notifications are withdrawn immediately when the next interactive Pi input arrives. RPC and extension-injected inputs do not trigger immediate withdrawal. Session shutdown cancels delayed timers and attempts to withdraw remaining notifications.
-
-The tracked actions locate `pi-notify.json` from `USERPROFILE` or `HOME`, then load `./pi-notify-bark.cjs` with Node's `createRequire`. This avoids dynamic `import()` because pi-notify evaluates trusted `js:` actions through `Function`, where an import callback may be unavailable. Keep `pi-notify-bark.secret` local and never commit it. Because Node caches the CommonJS helper, restart Pi after changing `pi-notify-bark.cjs`.
-
-### Subagent routing
-
-Main-agent routing is intentionally lightweight by default:
-
-| Resource | Role |
-| --- | --- |
-| `AGENTS.md` | Always-on short policy: prefer self for small known work; map common needs to agent types; avoid busywork delegation |
-| `skills/route-subagents/` | On-demand checklist for non-trivial tasks: classify → keep local vs delegate → choose type(s) → brief → parallel rules → verify |
-| SuperAgents skills | Deeper workflows already installed via packages: `delegating-to-subagents`, `dispatching-parallel-subagents`, `reviewing-subagent-work`, etc. |
-
-**Graded process (not a forced full plan every turn):**
-
-1. **Trivial** — do it locally; no routing ceremony.
-2. **Medium / multi-step** — decide before deep exploration or large edits; for a fuller checklist load `route-subagents` or run `/skill:route-subagents`.
-3. **Complex / multi-domain** — split into bounded assignments, choose types, and only parallelize when independence is clear.
-
-Default implementer is `worker`. Use the built-in `scout` for codebase exploration and `delegate` for generic isolated work; `settings.json` overrides both to `third-party/gpt-5.6-luna` with `xhigh` thinking and a `third-party/deepseek-v4-flash:max` fallback. Escalate to specialist agents only when the role clearly fits. After coding agents return, verify diffs yourself — summaries are not proof.
-
-Pi loads `AGENTS.md` as a context file from `~/.pi/agent/AGENTS.md` (and project/ancestor `AGENTS.md` files). Skills under `skills/` are discovered globally; force-load with `/skill:route-subagents` when needed. Run `/reload` or start a new session after changing either resource.
-
 ### Specialized subagents
 
-The files under `agents/` configure global specialized agents used by `xz-dev/pi-subagents`:
+Definitions under `agents/` are loaded globally from `~/.pi/agent/agents/`. The built-in `scout` and `delegate` agents are overridden in `settings.json`.
 
-| Agent | Model | Thinking | Role |
-| --- | --- | --- | --- |
-| `scout` (built-in override) | `third-party/gpt-5.6-luna` | `xhigh` | Fast codebase exploration and compressed context handoff |
-| `delegate` (built-in override) | `third-party/gpt-5.6-luna` | `xhigh` | Generic isolated work with no default reads |
-| `Plan` | `third-party/kmc/k3` | `high` | Read-only planning that writes `plan.md` from inherited context and research |
-| `code-merge-reviewer` | `third-party/gpt-5.6-luna` | `max` | Final pre-push/merge necessity review |
-| `frontend-engineer` | `third-party/kmc/k3` | `max` | Production frontend implementation with browser-backed verification |
-| `Oracle` (`oracle`) | `third-party/gpt-5.6-sol` | `max` | Project/plan reflection and course correction, not routine implementation |
-| `researcher` | `third-party/gpt-5.6-terra` | `high` | Source-backed multi-provider research that writes `research.md` when requested |
-| `reviewer` | `third-party/gpt-5.6-sol` | `medium` | Focused quality gate for an individual implementation step |
-| `reviewer-final` | `third-party/gpt-5.6-sol` | `xhigh` | Final rigorous quality gate after implementation and verification |
-| `tester` | `third-party/gpt-5.6-sol` | `medium` | Test design, automation, manual acceptance, and verification |
-| `ui-leader` | `third-party/kmc/k3` | `max` | Product/IA/UI direction, including optional visual mockups as implementation references |
-| `worker-auto` | `third-party/grok-4.5` | `high` | Fast automation work (verify independently afterward) |
-| `worker-pro-backend` | `third-party/gpt-5.6-sol` | `xhigh` | Heavy backend/infra work when its higher latency is justified |
-| `worker` | `third-party/deepseek-v4-flash` | `max` | Default routine implementation; aliases: `developer`, `coder`, `implementer`, `develop` |
+| Agent | Model | Thinking | Fallback | Role |
+| --- | --- | --- | --- | --- |
+| `scout` (built-in override) | `third-party/gpt-5.6-luna` | `xhigh` | `third-party/deepseek-v4-flash:max` | Codebase exploration and compressed context handoff |
+| `delegate` (built-in override) | `third-party/gpt-5.6-luna` | `xhigh` | `third-party/deepseek-v4-flash:max` | Generic isolated work |
+| `Plan` | `third-party/kmc/k3` | `high` | — | Read-only planning; writes `plan.md` |
+| `code-merge-reviewer` | `third-party/gpt-5.6-luna` | `max` | `third-party/deepseek-v4-flash:max` | Final pre-push or merge review |
+| `frontend-engineer` | `third-party/kmc/k3` | `max` | — | Frontend implementation and browser-backed verification |
+| `oracle` | `third-party/gpt-5.6-sol` | `max` | — | Project or plan reflection and course correction |
+| `researcher` | `third-party/gpt-5.6-terra` | `high` | — | Source-backed research; writes `research.md` |
+| `reviewer` | `third-party/gpt-5.6-sol` | `medium` | — | Focused implementation quality gate |
+| `reviewer-final` | `third-party/gpt-5.6-sol` | `xhigh` | — | Final quality gate after implementation and testing |
+| `tester` | `third-party/gpt-5.6-sol` | `medium` | — | Test design, automation, and acceptance verification |
+| `ui-leader` | `third-party/kmc/k3` | `max` | — | Product, information architecture, and UI direction |
+| `worker-auto` | `third-party/grok-4.5` | `high` | — | Fast automation work |
+| `worker-pro-backend` | `third-party/gpt-5.6-sol` | `xhigh` | — | Heavy backend and infrastructure work |
+| `worker` | `third-party/gpt-5.6-sol` | `medium` | — | Default routine implementation; aliases: `developer`, `coder`, `implementer`, `develop` |
 
-Suggested need → type mapping lives in `AGENTS.md` and `skills/route-subagents/SKILL.md`.
-
-Pi discovers these files globally at `~/.pi/agent/agents/`. A project-specific file at `<project>/.pi/agents/<agent-name>.md` takes precedence over its global counterpart.
-
-The configured models must be available in Pi's model registry. Verify a model with, for example:
+The configured models must exist in Pi's model registry. Verify one with, for example:
 
 ```powershell
 pi --list-models gpt-5.6-sol
 ```
 
-Restart the Pi session after adding or changing an agent definition.
+A project-specific definition at `<project>/.pi/agents/<agent-name>.md` takes precedence over the global definition. Run `/reload` or start a new session after changing extensions, skills, prompts, context files, or agent definitions.
+
+### Notifications and Bark
+
+`pi-notify.json` sends OSC notifications and Bark pushes for user questions, completed work, explicit `agent-notify` events, and continuation-watchdog failures.
+
+Create an untracked `~/.pi/agent/pi-notify-bark.secret` containing one Bark push URL, for example:
+
+```text
+https://api.day.app/your-device-key
+```
+
+The helper derives the `/push` endpoint, uses the `pi-notify` group, and keeps the device key out of tracked files. Question notifications are tied to their tool call and are withdrawn only after the push has been accepted for at least 60 seconds. Completion notifications are withdrawn on the next interactive input; RPC and extension-injected inputs do not trigger immediate withdrawal. Session shutdown cancels delayed timers and attempts to withdraw remaining notifications.
+
+The trusted `js:` actions load `pi-notify-bark.cjs` with Node's `createRequire` because their `Function` execution context may not support dynamic `import()`. Keep the secret local and restart Pi after changing the helper because Node caches the CommonJS module.
 
 ## Development
 
-Its allowlist-style `.gitignore` excludes Pi credentials, sessions, caches, installed packages, trust decisions, and generated model data.
+The allowlist-style `.gitignore` intentionally excludes credentials, sessions, caches, installed packages, trust decisions, and generated model data.
 
-After changing a resource:
+Refresh Pi according to the resource changed:
+
+| Change | Required action |
+| --- | --- |
+| Extensions, skills, prompts, themes, or context files | Run `/reload` |
+| Persistent environment variables or API adapter | Restart the terminal and Pi |
+| `agents/*.md` | Run `/reload` or start a new session |
+| `pi-notify-bark.cjs` | Restart Pi; Node caches the CommonJS helper |
+
+After editing a resource:
 
 ```powershell
 git status
 git diff
-git add .gitignore settings.json pi-retry.json pi-continue-watchdog.json pi-notify.json pi-notify-bark.cjs extensions README.md AGENTS.md skills agents
+git add .gitignore settings.json pi-retry.json pi-continue-watchdog.json pi-notify.json pi-notify-bark.cjs extensions README.md agents
 git commit -m "feat: describe the change"
 git push
 ```
 
-Inside Pi, run `/reload` after editing extensions, skills, prompts, themes, or context files such as `AGENTS.md`.
-
 ## Security
 
-Never commit:
-
-- `auth.json` or provider credentials
-- `sessions/` or exported conversations
-- `trust.json`
-- `.env` files, `pi-notify-bark.secret`, or literal API keys
-- `cache/`, `npm/`, `git/`, `.pi/`, or generated model stores
-
-Configuration files committed to this repository must not contain endpoint credentials. Provider API keys and private base URLs belong in environment variables.
+Never commit credentials or generated state, including `auth.json`, provider keys, `.env` files, `pi-notify-bark.secret`, sessions, caches, `trust.json`, or installed package directories. Keep provider keys and private base URLs in environment variables.
 
 ## License
 
