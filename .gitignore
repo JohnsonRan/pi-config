@@ -27,9 +27,6 @@
 !/skills/
 !/skills/**
 
-# Third-party skill installed with `npx skills add`; keep it local and use upstream.
-/skills/i-have-adhd/
-
 # Global pi-subagents overrides (sanitized; no runtime transcripts)
 !/agents/
 !/agents/**

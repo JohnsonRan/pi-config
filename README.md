@@ -12,6 +12,7 @@ Personal extensions and global configuration for [Pi](https://pi.dev).
 - `pi-retry.json` and `pi-continue-watchdog.json` — retry and continuation-watchdog settings.
 - `pi-notify.json` and `pi-notify-bark.cjs` — OSC/Bark notifications and retraction support.
 - `agents/*.md` — specialized subagent definitions.
+- `skills/web-perf/SKILL.md` — Chrome DevTools-based web performance audit workflow.
 
 ## Install
 
@@ -94,7 +95,6 @@ To use this repository as the active global configuration, install or clone it a
 The tracked settings reference these separately maintained Pi packages:
 
 ```powershell
-pi install npm:pi-simplify
 pi install npm:context-mode
 pi install git:github.com/xz-dev/pi-continuity
 pi install npm:pi-powerline-footer
@@ -102,20 +102,19 @@ pi install git:github.com/xz-dev/human-handoff-skill
 pi install git:github.com/xz-dev/SuperAgents-skill
 pi install git:github.com/xz-dev/i-read-the-code-skill
 pi install npm:browser-goblin
-pi install git:github.com/xz-dev/pi-tasks
 pi install git:github.com/xz-dev/pi-hermes-memory
 pi install git:github.com/xz-dev/pi-continue-watchdog
 pi install git:github.com/xz-dev/conventional-commits-skill
-pi install git:github.com/xz-dev/pi-subagents
 pi install git:github.com/xz-dev/pi-retry
 pi install git:github.com/xz-dev/pi-notify
-```
-
-`i-have-adhd` is intentionally not bundled. Install and update it from upstream:
-
-```powershell
-npx skills add ayghri/i-have-adhd -a pi -y -g
-npx skills update i-have-adhd -g
+pi install git:github.com/xz-dev/pi-double-confirm-interrupt
+pi install git:github.com/jonjonrankin/pi-caveman
+pi install git:github.com/DietrichGebert/ponytail
+pi install git:github.com/nicobailon/pi-subagents
+pi install git:github.com/nicobailon/pi-intercom
+pi install npm:@juicesharp/rpiv-todo
+pi install npm:pi-cache-optimizer
+pi install git:github.com/ayghri/i-have-adhd
 ```
 
 ### Specialized subagents
@@ -124,18 +123,18 @@ Definitions under `agents/` are loaded globally from `~/.pi/agent/agents/`. The 
 
 | Agent | Model | Thinking | Fallback | Role |
 | --- | --- | --- | --- | --- |
-| `scout` (built-in override) | `third-party/gpt-5.6-luna` | `xhigh` | `third-party/deepseek-v4-flash:max` | Codebase exploration and compressed context handoff |
+| `scout` (built-in override) | `third-party/gemini-3.7-flash-high` | `high` | `third-party/deepseek-v4-flash:max` | Codebase exploration and compressed context handoff |
 | `delegate` (built-in override) | `third-party/gpt-5.6-luna` | `xhigh` | `third-party/deepseek-v4-flash:max` | Generic isolated work |
-| `Plan` | `third-party/kmc/k3` | `high` | — | Read-only planning; writes `plan.md` |
+| `Plan` | `third-party/kmc/k3` | `max` | — | Read-only planning; writes `plan.md` |
 | `code-merge-reviewer` | `third-party/gpt-5.6-luna` | `max` | `third-party/deepseek-v4-flash:max` | Final pre-push or merge review |
 | `frontend-engineer` | `third-party/kmc/k3` | `max` | — | Frontend implementation and browser-backed verification |
 | `oracle` | `third-party/gpt-5.6-sol` | `max` | — | Project or plan reflection and course correction |
-| `researcher` | `third-party/gpt-5.6-terra` | `high` | — | Source-backed research; writes `research.md` |
+| `researcher` | `third-party/gemini-3.7-flash-high` | `high` | — | Source-backed research; writes `research.md` |
 | `reviewer` | `third-party/gpt-5.6-sol` | `medium` | — | Focused implementation quality gate |
 | `reviewer-final` | `third-party/gpt-5.6-sol` | `xhigh` | — | Final quality gate after implementation and testing |
 | `tester` | `third-party/gpt-5.6-sol` | `medium` | — | Test design, automation, and acceptance verification |
 | `ui-leader` | `third-party/kmc/k3` | `max` | — | Product, information architecture, and UI direction |
-| `worker-auto` | `third-party/grok-4.5` | `high` | — | Fast automation work |
+| `worker-auto` | `third-party/grok-4.6` | `medium` | — | Fast automation work |
 | `worker-pro-backend` | `third-party/gpt-5.6-sol` | `xhigh` | — | Heavy backend and infrastructure work |
 | `worker` | `third-party/gpt-5.6-sol` | `medium` | — | Default routine implementation; aliases: `developer`, `coder`, `implementer`, `develop` |
 

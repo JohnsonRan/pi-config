@@ -1,8 +1,7 @@
 {
-  "lastChangelogVersion": "0.84.1",
+  "lastChangelogVersion": "0.84.2",
   "theme": "dark",
   "packages": [
-    "npm:pi-simplify",
     "npm:context-mode",
     "git:github.com/xz-dev/pi-continuity",
     "npm:pi-powerline-footer",
@@ -10,13 +9,19 @@
     "git:github.com/xz-dev/SuperAgents-skill",
     "git:github.com/xz-dev/i-read-the-code-skill",
     "npm:browser-goblin",
-    "git:github.com/xz-dev/pi-tasks",
     "git:github.com/xz-dev/pi-hermes-memory",
     "git:github.com/xz-dev/pi-continue-watchdog",
     "git:github.com/xz-dev/conventional-commits-skill",
-    "git:github.com/xz-dev/pi-subagents",
     "git:github.com/xz-dev/pi-retry",
-    "git:github.com/xz-dev/pi-notify"
+    "git:github.com/xz-dev/pi-notify",
+    "git:github.com/xz-dev/pi-double-confirm-interrupt",
+    "git:github.com/jonjonrankin/pi-caveman",
+    "git:github.com/DietrichGebert/ponytail",
+    "git:github.com/nicobailon/pi-subagents",
+    "git:github.com/nicobailon/pi-intercom",
+    "npm:@juicesharp/rpiv-todo",
+    "npm:pi-cache-optimizer",
+    "git:github.com/ayghri/i-have-adhd"
   ],
   "defaultProvider": "third-party",
   "defaultModel": "gpt-5.6-sol",
@@ -57,8 +62,8 @@
   "subagents": {
     "agentOverrides": {
       "scout": {
-        "model": "third-party/gpt-5.6-luna",
-        "thinking": "xhigh",
+        "model": "third-party/gemini-3.7-flash-high",
+        "thinking": "high",
         "fallbackModels": [
           "third-party/deepseek-v4-flash:max"
         ]
