@@ -1,7 +1,7 @@
 ---
 name: reviewer
 description: A rigorous quality gate for an individual implementation step.
-model: third-party/gpt-5.6-sol
+model: cliproxyapi/gpt-5.6-sol
 thinking: medium
 systemPromptMode: replace
 inheritProjectContext: true

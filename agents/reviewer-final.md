@@ -1,7 +1,7 @@
 ---
 name: reviewer-final
 description: The final rigorous quality gate after implementation, testing, and verification are complete. Use only this reviewer for the final review.
-model: third-party/gpt-5.6-sol
+model: cliproxyapi/gpt-5.6-sol
 thinking: xhigh
 systemPromptMode: replace
 inheritProjectContext: true

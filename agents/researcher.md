@@ -1,7 +1,7 @@
 ---
 name: researcher
 description: Autonomous web researcher that searches, evaluates, and synthesizes a focused source-backed research brief.
-model: third-party/gemini-3.7-flash-high
+model: cliproxyapi/gemini-3.7-flash-high
 thinking: high
 systemPromptMode: replace
 inheritProjectContext: true

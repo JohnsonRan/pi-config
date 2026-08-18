@@ -17,18 +17,20 @@
     "git:github.com/xz-dev/pi-double-confirm-interrupt",
     "git:github.com/jonjonrankin/pi-caveman",
     "git:github.com/DietrichGebert/ponytail",
-    "git:github.com/nicobailon/pi-subagents",
     "git:github.com/nicobailon/pi-intercom",
     "npm:@juicesharp/rpiv-todo",
     "npm:pi-cache-optimizer",
-    "git:github.com/ayghri/i-have-adhd"
+    "git:github.com/ayghri/i-have-adhd",
+    "npm:pi-subagents",
+    "git:github.com/JohnsonRan/pi-cliproxyapi-provider"
   ],
-  "defaultProvider": "third-party",
+  "defaultProvider": "cliproxyapi",
   "defaultModel": "gpt-5.6-sol",
   "defaultThinkingLevel": "medium",
   "enableInstallTelemetry": false,
   "powerline": {
     "preset": "nerd",
+    "welcome": false,
     "layout": {
       "left": [
         "model",
@@ -62,17 +64,17 @@
   "subagents": {
     "agentOverrides": {
       "scout": {
-        "model": "third-party/gemini-3.7-flash-high",
+        "model": "cliproxyapi/gemini-3.7-flash-high",
         "thinking": "high",
         "fallbackModels": [
-          "third-party/deepseek-v4-flash:max"
+          "cliproxyapi/deepseek-v4-flash:max"
         ]
       },
       "delegate": {
-        "model": "third-party/gpt-5.6-luna",
+        "model": "cliproxyapi/gpt-5.6-luna",
         "thinking": "xhigh",
         "fallbackModels": [
-          "third-party/deepseek-v4-flash:max"
+          "cliproxyapi/deepseek-v4-flash:max"
         ]
       }
     }

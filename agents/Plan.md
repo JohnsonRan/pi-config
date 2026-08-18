@@ -1,7 +1,7 @@
 ---
 name: Plan
 description: Planner for complex tasks and software development; plans require review by the reviewer agent
-model: third-party/kmc/k3
+model: cliproxyapi/kimi-k3
 thinking: max
 acceptanceRole: read-only
 systemPromptMode: replace

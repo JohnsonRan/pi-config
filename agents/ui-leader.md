@@ -1,7 +1,7 @@
 ---
 name: ui-leader
 description: A leader in UI design and development, need sufficient turns and time to complete tasks carefully.
-model: third-party/kmc/k3
+model: cliproxyapi/kimi-k3
 thinking: max
 systemPromptMode: replace
 inheritProjectContext: true

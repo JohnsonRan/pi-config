@@ -1,7 +1,7 @@
 ---
 name: worker-auto
 description: A fast-moving programmer with intermediate coding skills and top-tier automation. May occasionally make small omissions or errors, so results require independent verification. Need sufficient turns and time to complete tasks carefully.
-model: third-party/grok-4.6
+model: cliproxyapi/grok-4.6
 thinking: medium
 systemPromptMode: replace
 inheritProjectContext: true
