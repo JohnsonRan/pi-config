@@ -7,9 +7,11 @@ Personal extensions and global configuration for [Pi](https://pi.dev).
 ## What's included
 
 - `extensions/pi-web.ts` — `web_search` and `web_fetch`, with Firecrawl → Tavily → Exa fallback.
+- [`JohnsonRan/pi-btw`](https://github.com/JohnsonRan/pi-btw) — `/btw` side questions that use session context without interrupting or entering the main conversation.
 - `settings.json` — global preferences, packages, CLIProxyAPI default provider, and default model.
 - `pi-retry.json` and `pi-continue-watchdog.json` — retry and continuation-watchdog settings.
-- `pi-notify.json` and `pi-notify-bark.cjs` — OSC/Bark notifications and retraction support.
+- `pi-notify.json` — local BEL/OSC notifications for questions, completed work, and explicit agent notifications.
+- [`JohnsonRan/pi-notify-telegram`](https://github.com/JohnsonRan/pi-notify-telegram) — threaded Telegram topics, streamed replies, and remote session wake-up.
 - `agents/*.md` — specialized subagent definitions.
 - `skills/web-perf/SKILL.md` — Chrome DevTools-based web performance audit workflow.
 
@@ -22,6 +24,16 @@ pi install git:github.com/JohnsonRan/pi-config
 Pi reads the extensions declared in `package.json`. Installed packages have full system access. This repository currently has no release tag to pin.
 
 ## Configure
+
+### Side questions
+
+The separately maintained [`pi-btw`](https://github.com/JohnsonRan/pi-btw) package provides `/btw <question>` to ask the active model a tool-free question about the current session. The main agent keeps running, and the question and answer are not added to its conversation context. The answer opens in a dismissible overlay; use `Left`/`Right` to browse up to 20 answers from the current extension load, or run `/btw` without arguments to reopen the latest answer.
+
+```text
+/btw which config file are we editing?
+```
+
+The extension sends a serialized snapshot of the current, compaction-aware session context in a separate model request. Unlike Claude Code's native implementation, Pi extensions cannot reuse the main request's provider prompt cache, so long sessions may incur additional input-token cost.
 
 ### Web search and fetch
 
@@ -82,6 +94,8 @@ pi install npm:pi-cache-optimizer
 pi install git:github.com/ayghri/i-have-adhd
 pi install npm:pi-subagents
 pi install git:github.com/JohnsonRan/pi-cliproxyapi-provider
+pi install git:github.com/JohnsonRan/pi-btw
+pi install git:github.com/JohnsonRan/pi-notify-telegram
 ```
 
 ### Specialized subagents
@@ -113,19 +127,13 @@ pi --list-models gpt-5.6-sol
 
 A project-specific definition at `<project>/.pi/agents/<agent-name>.md` takes precedence over the global definition. Run `/reload` or start a new session after changing extensions, skills, prompts, context files, or agent definitions.
 
-### Notifications and Bark
+### Notifications and Telegram
 
-`pi-notify.json` sends OSC notifications and Bark pushes for user questions, completed work, explicit `agent-notify` events, and continuation-watchdog failures.
+`pi-notify.json` keeps local notifications lightweight: questions and explicit `agent-notify` events emit BEL and OSC messages, while completed work and continuation-watchdog failures emit OSC messages.
 
-Create an untracked `~/.pi/agent/pi-notify-bark.secret` containing one Bark push URL, for example:
+The separately maintained [`pi-notify-telegram`](https://github.com/JohnsonRan/pi-notify-telegram) package provides the remote notification path. It assigns each Pi session a Telegram topic, streams assistant replies, routes topic replies back as Pi user messages, and can optionally wake stopped sessions. Enable Threaded Mode for the bot in `@BotFather`, install the package, restart Pi, then run its `setup.cjs` utility from the installed checkout.
 
-```text
-https://api.day.app/your-device-key
-```
-
-The helper derives the `/push` endpoint, uses the `pi-notify` group, and keeps the device key out of tracked files. Question notifications are tied to their tool call and are withdrawn only after the push has been accepted for at least 60 seconds. Completion notifications are withdrawn on the next interactive input; RPC and extension-injected inputs do not trigger immediate withdrawal. Session shutdown cancels delayed timers and attempts to withdraw remaining notifications.
-
-The trusted `js:` actions load `pi-notify-bark.cjs` with Node's `createRequire` because their `Function` execution context may not support dynamic `import()`. Keep the secret local and restart Pi after changing the helper because Node caches the CommonJS module.
+The Telegram extension listens directly for `ask_user_question`, `user-ready`, and `agent-notify` events. Keep Telegram actions out of `pi-notify.json` to avoid duplicate messages. Its bot token, broker configuration, state, and logs stay in untracked `pi-notify-telegram.*` files under `~/.pi/agent`.
 
 ## Development
 
@@ -138,21 +146,21 @@ Refresh Pi according to the resource changed:
 | Extensions, skills, prompts, themes, or context files | Run `/reload` |
 | Persistent environment variables or provider configuration | Restart the terminal and Pi |
 | `agents/*.md` | Run `/reload` or start a new session |
-| `pi-notify-bark.cjs` | Restart Pi; Node caches the CommonJS helper |
+| Installed package configuration or background services | Restart Pi or the relevant service |
 
 After editing a resource:
 
 ```powershell
 git status
 git diff
-git add .gitignore settings.json pi-retry.json pi-continue-watchdog.json pi-notify.json pi-notify-bark.cjs extensions README.md agents
+git add .gitignore settings.json pi-retry.json pi-continue-watchdog.json pi-notify.json extensions README.md agents
 git commit -m "feat: describe the change"
 git push
 ```
 
 ## Security
 
-Never commit credentials or generated state, including `auth.json`, provider keys, `.env` files, `pi-notify-bark.secret`, sessions, caches, `trust.json`, or installed package directories. Keep provider keys and private base URLs in environment variables.
+Never commit credentials or generated state, including `auth.json`, provider keys, `.env` files, `pi-notify-telegram.secret`, `pi-notify-telegram.json`, `pi-notify-telegram.state.json`, sessions, caches, `trust.json`, or installed package directories. Keep provider keys and private base URLs in environment variables.
 
 ## License
 

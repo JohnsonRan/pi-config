@@ -22,7 +22,9 @@
     "npm:pi-cache-optimizer",
     "git:github.com/ayghri/i-have-adhd",
     "npm:pi-subagents",
-    "git:github.com/JohnsonRan/pi-cliproxyapi-provider"
+    "git:github.com/JohnsonRan/pi-cliproxyapi-provider",
+    "git:github.com/JohnsonRan/pi-btw",
+    "git:github.com/JohnsonRan/pi-notify-telegram"
   ],
   "defaultProvider": "cliproxyapi",
   "defaultModel": "gpt-5.6-sol",
