@@ -11,7 +11,8 @@ Personal extensions and global configuration for [Pi](https://pi.dev).
 - `settings.json` — global preferences, packages, CLIProxyAPI default provider, and default model.
 - `pi-retry.json` and `pi-continue-watchdog.json` — retry and continuation-watchdog settings.
 - `pi-notify.json` — local BEL/OSC notifications for questions, completed work, and explicit agent notifications.
-- [`JohnsonRan/pi-notify-telegram`](https://github.com/JohnsonRan/pi-notify-telegram) — threaded Telegram topics, streamed replies, and remote session wake-up.
+- [`JohnsonRan/pi-telegram-operator`](https://github.com/JohnsonRan/pi-telegram-operator) — threaded Telegram topics, streamed replies, remote controls, and session wake-up.
+- [`xz-dev/pi-reflect-watchdog`](https://github.com/xz-dev/pi-reflect-watchdog) — active-time and loop watchdog with explicit `/reflect` support.
 - `agents/*.md` — specialized subagent definitions.
 - `skills/web-perf/SKILL.md` — Chrome DevTools-based web performance audit workflow.
 
@@ -93,9 +94,10 @@ pi install npm:@juicesharp/rpiv-todo
 pi install npm:pi-cache-optimizer
 pi install git:github.com/ayghri/i-have-adhd
 pi install npm:pi-subagents
-pi install git:github.com/JohnsonRan/pi-cliproxyapi-provider
 pi install git:github.com/JohnsonRan/pi-btw
-pi install git:github.com/JohnsonRan/pi-notify-telegram
+pi install git:github.com/JohnsonRan/pi-telegram-operator
+pi install git:github.com/JohnsonRan/pi-cliproxyapi-provider
+pi install git:github.com/xz-dev/pi-reflect-watchdog
 ```
 
 ### Specialized subagents
@@ -104,10 +106,10 @@ Definitions under `agents/` are loaded globally from `~/.pi/agent/agents/`. The 
 
 | Agent | Model | Thinking | Fallback | Role |
 | --- | --- | --- | --- | --- |
-| `scout` (built-in override) | `cliproxyapi/gemini-3.7-flash-high` | `high` | `cliproxyapi/deepseek-v4-flash:max` | Codebase exploration and compressed context handoff |
-| `delegate` (built-in override) | `cliproxyapi/gpt-5.6-luna` | `xhigh` | `cliproxyapi/deepseek-v4-flash:max` | Generic isolated work |
+| `scout` (built-in override) | `cliproxyapi/gemini-3.7-flash-high` | `high` | `cliproxyapi/gemini-3.7-flash-high:high` | Codebase exploration and compressed context handoff |
+| `delegate` (built-in override) | `cliproxyapi/gpt-5.6-luna` | `xhigh` | `cliproxyapi/gemini-3.7-flash-high:high` | Generic isolated work |
 | `Plan` | `cliproxyapi/kimi-k3` | `max` | — | Read-only planning; writes `plan.md` |
-| `code-merge-reviewer` | `cliproxyapi/gpt-5.6-luna` | `max` | `cliproxyapi/deepseek-v4-flash:max` | Final pre-push or merge review |
+| `code-merge-reviewer` | `cliproxyapi/gpt-5.6-luna` | `max` | `cliproxyapi/gemini-3.7-flash-high:high` | Final pre-push or merge review |
 | `frontend-engineer` | `cliproxyapi/kimi-k3` | `max` | — | Frontend implementation and browser-backed verification |
 | `oracle` | `cliproxyapi/gpt-5.6-sol` | `max` | — | Project or plan reflection and course correction |
 | `researcher` | `cliproxyapi/gemini-3.7-flash-high` | `high` | — | Source-backed research; writes `research.md` |
@@ -131,9 +133,9 @@ A project-specific definition at `<project>/.pi/agents/<agent-name>.md` takes pr
 
 `pi-notify.json` keeps local notifications lightweight: questions and explicit `agent-notify` events emit BEL and OSC messages, while completed work and continuation-watchdog failures emit OSC messages.
 
-The separately maintained [`pi-notify-telegram`](https://github.com/JohnsonRan/pi-notify-telegram) package provides the remote notification path. It assigns each Pi session a Telegram topic, streams assistant replies, routes topic replies back as Pi user messages, and can optionally wake stopped sessions. Enable Threaded Mode for the bot in `@BotFather`, install the package, restart Pi, then run its `setup.cjs` utility from the installed checkout.
+The separately maintained [`pi-telegram-operator`](https://github.com/JohnsonRan/pi-telegram-operator) package provides the remote operator path. It assigns each Pi session a Telegram topic, streams assistant replies, routes topic replies back as Pi user messages, exposes session controls and Pi commands, and can optionally wake stopped sessions. Enable Threaded Mode for the bot in `@BotFather`, install the package, restart Pi, then run its `setup.cjs` utility from the installed checkout.
 
-The Telegram extension listens directly for `ask_user_question`, `user-ready`, and `agent-notify` events. Keep Telegram actions out of `pi-notify.json` to avoid duplicate messages. Its bot token, broker configuration, state, and logs stay in untracked `pi-notify-telegram.*` files under `~/.pi/agent`.
+The Telegram extension listens directly for `ask_user_question`, `user-ready`, and `agent-notify` events. Keep Telegram actions out of `pi-notify.json` to avoid duplicate messages. Its bot token, broker configuration, state, and logs stay in untracked `pi-telegram-operator.*` files under `~/.pi/agent`.
 
 ## Development
 
@@ -160,7 +162,7 @@ git push
 
 ## Security
 
-Never commit credentials or generated state, including `auth.json`, provider keys, `.env` files, `pi-notify-telegram.secret`, `pi-notify-telegram.json`, `pi-notify-telegram.state.json`, sessions, caches, `trust.json`, or installed package directories. Keep provider keys and private base URLs in environment variables.
+Never commit credentials or generated state, including `auth.json`, provider keys, `.env` files, `pi-telegram-operator.secret`, `pi-telegram-operator.json`, `pi-telegram-operator.state.json`, sessions, caches, `trust.json`, or installed package directories. Keep provider keys and private base URLs in environment variables.
 
 ## License
 
