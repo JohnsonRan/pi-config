@@ -1,7 +1,7 @@
 ---
 name: frontend-engineer
 description: A highly skilled professional frontend engineer with exceptional aesthetic judgment, need sufficient turns and time to complete tasks carefully.
-model: cliproxyapi/kimi-k3
+model: cliproxyapi/kimi-k3-256k
 thinking: max
 systemPromptMode: replace
 inheritProjectContext: true

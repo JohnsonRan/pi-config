@@ -1,8 +1,9 @@
 ---
 name: oracle
 aliases: Oracle
-model: cliproxyapi/gpt-5.6-sol
+model: cliproxyapi/gpt-6-astra
 thinking: max
+fallbackModels: cliproxyapi/kimi-k3-256k:max, cliproxyapi/glm-5.3:max
 description: 'Use only to evaluate overall project progress and plans. Within that scope: Reflect—step back, reassess the true goal, challenge assumptions, check the current path, and identify wasted effort. Not for implementation, debugging, or routine execution. Need sufficient turns and time to complete tasks carefully.'
 systemPromptMode: replace
 inheritProjectContext: true

@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.84.3",
+  "lastChangelogVersion": "0.85.1",
   "theme": "dark",
   "packages": [
     "npm:context-mode",
@@ -21,15 +21,15 @@
     "npm:@juicesharp/rpiv-todo",
     "npm:pi-cache-optimizer",
     "git:github.com/ayghri/i-have-adhd",
-    "npm:pi-subagents",
     "git:github.com/JohnsonRan/pi-btw",
     "git:github.com/JohnsonRan/pi-telegram-operator",
     "git:github.com/JohnsonRan/pi-cliproxyapi-provider",
-    "git:github.com/xz-dev/pi-reflect-watchdog"
+    "git:github.com/xz-dev/pi-reflect-watchdog",
+    "git:github.com/nicobailon/pi-subagents"
   ],
   "defaultProvider": "cliproxyapi",
-  "defaultModel": "gpt-5.6-sol",
-  "defaultThinkingLevel": "medium",
+  "defaultModel": "gpt-5.6-astra",
+  "defaultThinkingLevel": "high",
   "enableInstallTelemetry": false,
   "powerline": {
     "preset": "nerd",
@@ -65,21 +65,46 @@
     }
   },
   "subagents": {
-    "agentOverrides": {
-      "scout": {
-        "model": "cliproxyapi/gemini-3.7-flash-high",
-        "thinking": "high",
-        "fallbackModels": [
-          "cliproxyapi/gemini-3.7-flash-high:high"
-        ]
-      },
-      "delegate": {
-        "model": "cliproxyapi/gpt-5.6-luna",
-        "thinking": "xhigh",
-        "fallbackModels": [
-          "cliproxyapi/gemini-3.7-flash-high:high"
-        ]
+      "agentOverrides": {
+        "scout": {
+          "model": "cliproxyapi/gemini-3.8-flash-high:high",
+          "thinking": "high",
+          "fallbackModels": [
+            "cliproxyapi/gpt-5.6-luna",
+            "cliproxyapi/grok-4.6:medium"
+          ]
+        },
+        "delegate": {
+          "model": "cliproxyapi/glm-5.3-flash",
+          "thinking": "max",
+          "fallbackModels": [
+            "cliproxyapi/gpt-5.6-luna:xhigh",
+            "cliproxyapi/gemini-3.8-flash-high:high",
+            "cliproxyapi/grok-4.6:high"
+          ]
+        },
+        "researcher": {
+          "model": "cliproxyapi/glm-5.3-flash",
+          "thinking": "max",
+          "fallbackModels": [
+            "cliproxyapi/gemini-3.8-flash-high:high",
+            "cliproxyapi/gpt-5.6-luna:high"
+          ]
+        },
+        "evidence-auditor": {
+          "model": "cliproxyapi/kimi-k3-256k:max",
+          "fallbackModels": [
+            "cliproxyapi/glm-5.3:max",
+            "cliproxyapi/grok-4.6:max"
+          ]
+        }
       }
+    },
+    "retry": {
+      "enabled": true,
+      "maxRetries": 10,
+      "nonRetryableErrorPatterns": [
+        "quota threshold"
+      ]
     }
-  }
 }

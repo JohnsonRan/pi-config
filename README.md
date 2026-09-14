@@ -67,6 +67,12 @@ Model discovery and inference are supplied by the separately maintained [`pi-cli
 
 Enter the CLIProxyAPI base URL and API key. The package discovers models dynamically, registers them under the `cliproxyapi` provider, and caches model metadata locally. Run `/cliproxyapi-refresh` after changing the proxy's model catalog.
 
+The tracked startup defaults are `cliproxyapi/gpt-5.6-astra` with `high` thinking. Subagents use their own model and thinking settings below.
+
+### Automatic retries
+
+`settings.json` enables Pi's agent-level automatic retries with `maxRetries: 10`. Errors containing `quota threshold` (case-insensitive) skip these retries, in addition to Pi's built-in non-retryable quota and billing patterns. The separate `pi-retry.json` configures the installed retry extension.
+
 ## Global setup
 
 To use this repository as the active global configuration, install or clone it at `~/.pi/agent`. If you already have a Pi configuration, merge selected fields from `settings.json` rather than overwriting it.
@@ -93,7 +99,7 @@ pi install git:github.com/nicobailon/pi-intercom
 pi install npm:@juicesharp/rpiv-todo
 pi install npm:pi-cache-optimizer
 pi install git:github.com/ayghri/i-have-adhd
-pi install npm:pi-subagents
+pi install git:github.com/nicobailon/pi-subagents
 pi install git:github.com/JohnsonRan/pi-btw
 pi install git:github.com/JohnsonRan/pi-telegram-operator
 pi install git:github.com/JohnsonRan/pi-cliproxyapi-provider
@@ -102,29 +108,32 @@ pi install git:github.com/xz-dev/pi-reflect-watchdog
 
 ### Specialized subagents
 
-Definitions under `agents/` are loaded globally from `~/.pi/agent/agents/`. The built-in `scout` and `delegate` agents are overridden in `settings.json`.
+Definitions under `agents/` are loaded globally from `~/.pi/agent/agents/`. The `pi-subagents` package now comes from its Git repository rather than npm. Its built-in `scout`, `delegate`, `researcher`, and `evidence-auditor` agents are overridden in `settings.json`. The local `agents/researcher.md` has been removed in favor of the built-in researcher.
 
-| Agent | Model | Thinking | Fallback | Role |
+Fallbacks are listed in configured order; `:<level>` suffixes specify thinking levels.
+
+| Agent | Model | Thinking | Fallbacks | Role |
 | --- | --- | --- | --- | --- |
-| `scout` (built-in override) | `cliproxyapi/gemini-3.7-flash-high` | `high` | `cliproxyapi/gemini-3.7-flash-high:high` | Codebase exploration and compressed context handoff |
-| `delegate` (built-in override) | `cliproxyapi/gpt-5.6-luna` | `xhigh` | `cliproxyapi/gemini-3.7-flash-high:high` | Generic isolated work |
-| `Plan` | `cliproxyapi/kimi-k3` | `max` | — | Read-only planning; writes `plan.md` |
-| `code-merge-reviewer` | `cliproxyapi/gpt-5.6-luna` | `max` | `cliproxyapi/gemini-3.7-flash-high:high` | Final pre-push or merge review |
-| `frontend-engineer` | `cliproxyapi/kimi-k3` | `max` | — | Frontend implementation and browser-backed verification |
-| `oracle` | `cliproxyapi/gpt-5.6-sol` | `max` | — | Project or plan reflection and course correction |
-| `researcher` | `cliproxyapi/gemini-3.7-flash-high` | `high` | — | Source-backed research; writes `research.md` |
-| `reviewer` | `cliproxyapi/gpt-5.6-sol` | `medium` | — | Focused implementation quality gate |
-| `reviewer-final` | `cliproxyapi/gpt-5.6-sol` | `xhigh` | — | Final quality gate after implementation and testing |
-| `tester` | `cliproxyapi/gpt-5.6-sol` | `medium` | — | Test design, automation, and acceptance verification |
+| `scout` (built-in override) | `cliproxyapi/gemini-3.8-flash-high` | `high` | `cliproxyapi/gpt-5.6-luna`, `cliproxyapi/grok-4.6:medium` | Codebase exploration and compressed context handoff |
+| `delegate` (built-in override) | `cliproxyapi/glm-5.3-flash` | `max` | `cliproxyapi/gpt-5.6-luna:xhigh`, `cliproxyapi/gemini-3.8-flash-high:high`, `cliproxyapi/grok-4.6:high` | Generic isolated work |
+| `researcher` (built-in override) | `cliproxyapi/glm-5.3-flash` | `max` | `cliproxyapi/gemini-3.8-flash-high:high`, `cliproxyapi/gpt-5.6-luna:high` | Source-backed research; writes `research.md` |
+| `evidence-auditor` (built-in override) | `cliproxyapi/kimi-k3-256k` | `max` | `cliproxyapi/glm-5.3:max`, `cliproxyapi/grok-4.6:max` | Independent verification of decision-critical research claims and sources |
+| `Plan` | `cliproxyapi/gpt-6-astra` | `max` | `cliproxyapi/kimi-k3-256k:max`, `cliproxyapi/glm-5.3:max` | Read-only planning; writes `plan.md` |
+| `code-merge-reviewer` | `cliproxyapi/glm-5.3-flash` | `max` | `cliproxyapi/gpt-5.6-luna:max`, `cliproxyapi/gemini-3.8-flash-high:medium` | Final pre-push or merge review |
+| `frontend-engineer` | `cliproxyapi/kimi-k3-256k` | `max` | — | Frontend implementation and browser-backed verification |
+| `oracle` | `cliproxyapi/gpt-6-astra` | `max` | `cliproxyapi/kimi-k3-256k:max`, `cliproxyapi/glm-5.3:max` | Project or plan reflection and course correction |
+| `reviewer` | `cliproxyapi/gpt-6-astra` | `medium` | `cliproxyapi/kimi-k3-256k:max`, `cliproxyapi/glm-5.3:max` | Focused implementation quality gate |
+| `reviewer-final` | `cliproxyapi/gpt-6-astra` | `xhigh` | `cliproxyapi/kimi-k3-256k:max`, `cliproxyapi/glm-5.3:max` | Final quality gate after implementation and testing |
+| `tester` | `cliproxyapi/grok-4.6` | `medium` | `cliproxyapi/glm-5.3:low` | Test design, automation, and acceptance verification |
 | `ui-leader` | `cliproxyapi/kimi-k3` | `max` | — | Product, information architecture, and UI direction |
-| `worker-auto` | `cliproxyapi/grok-4.6` | `medium` | — | Fast automation work |
-| `worker-pro-backend` | `cliproxyapi/gpt-5.6-sol` | `xhigh` | — | Heavy backend and infrastructure work |
-| `worker` | `cliproxyapi/gpt-5.6-sol` | `medium` | — | Default routine implementation; aliases: `developer`, `coder`, `implementer`, `develop` |
+| `worker-auto` | `cliproxyapi/glm-5.3` | `max` | `cliproxyapi/kimi-k3:max` | Fast automation work |
+| `worker-pro-backend` | `cliproxyapi/gpt-6-astra` | `xhigh` | `cliproxyapi/kimi-k3-256k:max`, `cliproxyapi/glm-5.3:max` | Heavy backend and infrastructure work |
+| `worker` | `cliproxyapi/gemini-3.8-flash-high` | `high` | `cliproxyapi/glm-5.3:medium`, `cliproxyapi/kimi-k3-256k:medium` | Default routine implementation; aliases: `developer`, `coder`, `implementer`, `develop` |
 
 The configured models must exist in Pi's model registry. Verify one with, for example:
 
 ```powershell
-pi --list-models gpt-5.6-sol
+pi --list-models gpt-6-astra
 ```
 
 A project-specific definition at `<project>/.pi/agents/<agent-name>.md` takes precedence over the global definition. Run `/reload` or start a new session after changing extensions, skills, prompts, context files, or agent definitions.

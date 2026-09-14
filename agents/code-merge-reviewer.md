@@ -1,9 +1,9 @@
 ---
 name: code-merge-reviewer
 description: The final review before deciding whether to push or merge code, questioning the necessity of every change from a first-time project reader's perspective. need sufficient turns and time to complete tasks carefully.
-model: cliproxyapi/gpt-5.6-luna
+model: cliproxyapi/glm-5.3-flash
 thinking: max
-fallbackModels: cliproxyapi/gemini-3.7-flash-high:high
+fallbackModels: cliproxyapi/gpt-5.6-luna:max, cliproxyapi/gemini-3.8-flash-high:medium
 systemPromptMode: replace
 inheritProjectContext: true
 inheritSkills: true
