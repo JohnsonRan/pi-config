@@ -67,7 +67,7 @@ Model discovery and inference are supplied by the separately maintained [`pi-cli
 
 Enter the CLIProxyAPI base URL and API key. The package discovers models dynamically, registers them under the `cliproxyapi` provider, and caches model metadata locally. Run `/cliproxyapi-refresh` after changing the proxy's model catalog.
 
-The tracked startup defaults are `cliproxyapi/gpt-5.6-astra` with `high` thinking. Subagents use their own model and thinking settings below.
+The tracked startup defaults are `cliproxyapi/gpt-6-astra` with `high` thinking. Subagents use their own model and thinking settings below.
 
 ### Automatic retries
 
@@ -98,7 +98,6 @@ pi install git:github.com/DietrichGebert/ponytail
 pi install git:github.com/nicobailon/pi-intercom
 pi install npm:@juicesharp/rpiv-todo
 pi install npm:pi-cache-optimizer
-pi install git:github.com/ayghri/i-have-adhd
 pi install git:github.com/nicobailon/pi-subagents
 pi install git:github.com/JohnsonRan/pi-btw
 pi install git:github.com/JohnsonRan/pi-telegram-operator
@@ -110,14 +109,14 @@ pi install git:github.com/xz-dev/pi-reflect-watchdog
 
 Definitions under `agents/` are loaded globally from `~/.pi/agent/agents/`. The `pi-subagents` package now comes from its Git repository rather than npm. Its built-in `scout`, `delegate`, `researcher`, and `evidence-auditor` agents are overridden in `settings.json`. The local `agents/researcher.md` has been removed in favor of the built-in researcher.
 
-Fallbacks are listed in configured order; `:<level>` suffixes specify thinking levels.
+The built-in overrides do not configure fallback models. Fallbacks for local agents are listed in configured order; `:<level>` suffixes specify thinking levels.
 
 | Agent | Model | Thinking | Fallbacks | Role |
 | --- | --- | --- | --- | --- |
-| `scout` (built-in override) | `cliproxyapi/gemini-3.8-flash-high` | `high` | `cliproxyapi/gpt-5.6-luna`, `cliproxyapi/grok-4.6:medium` | Codebase exploration and compressed context handoff |
-| `delegate` (built-in override) | `cliproxyapi/glm-5.3-flash` | `max` | `cliproxyapi/gpt-5.6-luna:xhigh`, `cliproxyapi/gemini-3.8-flash-high:high`, `cliproxyapi/grok-4.6:high` | Generic isolated work |
-| `researcher` (built-in override) | `cliproxyapi/glm-5.3-flash` | `max` | `cliproxyapi/gemini-3.8-flash-high:high`, `cliproxyapi/gpt-5.6-luna:high` | Source-backed research; writes `research.md` |
-| `evidence-auditor` (built-in override) | `cliproxyapi/kimi-k3-256k` | `max` | `cliproxyapi/glm-5.3:max`, `cliproxyapi/grok-4.6:max` | Independent verification of decision-critical research claims and sources |
+| `scout` (built-in override) | `cliproxyapi/gemini-3.8-flash-high` | `high` | — | Codebase exploration and compressed context handoff |
+| `delegate` (built-in override) | `cliproxyapi/gemini-3.8-flash-high` | `high` | — | Generic isolated work |
+| `researcher` (built-in override) | `cliproxyapi/gemini-3.8-flash-high` | `high` | — | Source-backed research; writes `research.md` |
+| `evidence-auditor` (built-in override) | `cliproxyapi/grok-4.6` | `max` | — | Independent verification of decision-critical research claims and sources |
 | `Plan` | `cliproxyapi/gpt-6-astra` | `max` | `cliproxyapi/kimi-k3-256k:max`, `cliproxyapi/glm-5.3:max` | Read-only planning; writes `plan.md` |
 | `code-merge-reviewer` | `cliproxyapi/glm-5.3-flash` | `max` | `cliproxyapi/gpt-5.6-luna:max`, `cliproxyapi/gemini-3.8-flash-high:medium` | Final pre-push or merge review |
 | `frontend-engineer` | `cliproxyapi/kimi-k3-256k` | `max` | — | Frontend implementation and browser-backed verification |
