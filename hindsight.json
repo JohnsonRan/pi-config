@@ -1,0 +1,9 @@
+{
+  "banks": {
+    "project": {
+      "enabled": true,
+      "derive": "manual",
+      "bankId": "pi-coding"
+    }
+  }
+}

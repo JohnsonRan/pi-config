@@ -9,6 +9,7 @@ Personal extensions and global configuration for [Pi](https://pi.dev).
 - `extensions/pi-web.ts` — `web_search` and `web_fetch`, with Firecrawl → Tavily → Exa fallback.
 - [`JohnsonRan/pi-btw`](https://github.com/JohnsonRan/pi-btw) — `/btw` side questions that use session context without interrupting or entering the main conversation.
 - `settings.json` — global preferences, packages, CLIProxyAPI default provider, and default model.
+- `hindsight.json` and `.pi/hindsight.json` — global coding-bank selection and this repository's Hindsight memory profile; no credentials or memory data.
 - `pi-retry.json` and `pi-continue-watchdog.json` — retry and continuation-watchdog settings.
 - `pi-notify.json` — local BEL/OSC notifications for questions, completed work, and explicit agent notifications.
 - [`JohnsonRan/pi-telegram-operator`](https://github.com/JohnsonRan/pi-telegram-operator) — threaded Telegram topics, streamed replies, remote controls, and session wake-up.
@@ -87,7 +88,7 @@ pi install git:github.com/xz-dev/human-handoff-skill
 pi install git:github.com/xz-dev/SuperAgents-skill
 pi install git:github.com/xz-dev/i-read-the-code-skill
 pi install npm:browser-goblin
-pi install git:github.com/xz-dev/pi-hermes-memory
+pi install git:github.com/luxus/pi-hindsight
 pi install git:github.com/xz-dev/pi-continue-watchdog
 pi install git:github.com/xz-dev/conventional-commits-skill
 pi install git:github.com/xz-dev/pi-retry
@@ -104,6 +105,16 @@ pi install git:github.com/JohnsonRan/pi-telegram-operator
 pi install git:github.com/JohnsonRan/pi-cliproxyapi-provider
 pi install git:github.com/xz-dev/pi-reflect-watchdog
 ```
+
+### Hindsight memory
+
+The separately maintained [`pi-hindsight`](https://github.com/luxus/pi-hindsight) package replaces `pi-hermes-memory`.
+
+- `~/.pi/agent/hindsight.json` selects the shared `pi-coding` bank globally.
+- `.pi/hindsight.json` configures this repository for domain-tagged coding memory, automatic recall/retain, and disabled user memory. Other repositories need their own `/hindsight` setup.
+- Keep `HINDSIGHT_BASE_URL` and `HINDSIGHT_API_TOKEN` in your local environment; neither is stored in this repository.
+
+Installing this repository as a Pi package does not copy these config files into active config locations. Merge them into the paths above when not using this checkout as `~/.pi/agent`, then restart Pi. Bank missions, mental models, and memory data remain on the Hindsight server; local queues, import checkpoints, and caches under `.pi/hindsight/` stay ignored.
 
 ### Specialized subagents
 
@@ -163,7 +174,7 @@ After editing a resource:
 ```powershell
 git status
 git diff
-git add .gitignore settings.json pi-retry.json pi-continue-watchdog.json pi-notify.json extensions README.md agents
+git add .gitignore settings.json hindsight.json .pi/hindsight.json pi-retry.json pi-continue-watchdog.json pi-notify.json extensions README.md agents
 git commit -m "feat: describe the change"
 git push
 ```

@@ -9,7 +9,6 @@
     "git:github.com/xz-dev/SuperAgents-skill",
     "git:github.com/xz-dev/i-read-the-code-skill",
     "npm:browser-goblin",
-    "git:github.com/xz-dev/pi-hermes-memory",
     "git:github.com/xz-dev/pi-continue-watchdog",
     "git:github.com/xz-dev/conventional-commits-skill",
     "git:github.com/xz-dev/pi-retry",
@@ -24,7 +23,8 @@
     "git:github.com/JohnsonRan/pi-telegram-operator",
     "git:github.com/JohnsonRan/pi-cliproxyapi-provider",
     "git:github.com/xz-dev/pi-reflect-watchdog",
-    "git:github.com/nicobailon/pi-subagents"
+    "git:github.com/nicobailon/pi-subagents",
+    "git:github.com/luxus/pi-hindsight"
   ],
   "defaultProvider": "cliproxyapi",
   "defaultModel": "gpt-6-astra",

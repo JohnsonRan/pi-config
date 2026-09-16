@@ -10,6 +10,7 @@
 
 # Tracked configuration (contains no credentials)
 !/settings.json
+!/hindsight.json
 !/pi-retry.json
 !/pi-notify.json
 !/pi-notify-bark.cjs
@@ -46,6 +47,10 @@ cache/
 npm/
 git/
 .pi/
+# Only this repository's Hindsight config; keep all runtime state ignored.
+!/.pi/
+/.pi/*
+!/.pi/hindsight.json
 .env
 .env.*
 *.key
