@@ -9,7 +9,7 @@
       "enabled": true
     },
     "user": {
-      "enabled": false
+      "enabled": true
     }
   },
   "userRetain": {

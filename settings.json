@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.85.1",
+  "lastChangelogVersion": "0.86.0",
   "theme": "dark",
   "packages": [
     "npm:context-mode",
@@ -24,11 +24,13 @@
     "git:github.com/JohnsonRan/pi-cliproxyapi-provider",
     "git:github.com/xz-dev/pi-reflect-watchdog",
     "git:github.com/nicobailon/pi-subagents",
-    "git:github.com/luxus/pi-hindsight"
+    "git:github.com/luxus/pi-hindsight",
+    "git:github.com/xz-dev/rpiv-mono@release/ask-user-question",
+    "git:github.com/JohnsonRan/pi-jev"
   ],
   "defaultProvider": "cliproxyapi",
   "defaultModel": "gpt-6-astra",
-  "defaultThinkingLevel": "high",
+  "defaultThinkingLevel": "medium",
   "enableInstallTelemetry": false,
   "powerline": {
     "preset": "nerd",

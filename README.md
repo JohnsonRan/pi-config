@@ -14,6 +14,8 @@ Personal extensions and global configuration for [Pi](https://pi.dev).
 - `pi-notify.json` — local BEL/OSC notifications for questions, completed work, and explicit agent notifications.
 - [`JohnsonRan/pi-telegram-operator`](https://github.com/JohnsonRan/pi-telegram-operator) — threaded Telegram topics, streamed replies, remote controls, and session wake-up.
 - [`xz-dev/pi-reflect-watchdog`](https://github.com/xz-dev/pi-reflect-watchdog) — active-time and loop watchdog with explicit `/reflect` support.
+- [`xz-dev/rpiv-mono@release/ask-user-question`](https://github.com/xz-dev/rpiv-mono) — `ask_user_question` TUI questionnaires instead of guessing.
+- [`JohnsonRan/pi-jev`](https://github.com/JohnsonRan/pi-jev) — TypeSafe Jev auto-mode classifier for mutating tools (`/jev`).
 - `agents/*.md` — specialized subagent definitions.
 - `skills/web-perf/SKILL.md` — Chrome DevTools-based web performance audit workflow.
 
@@ -104,14 +106,16 @@ pi install git:github.com/JohnsonRan/pi-btw
 pi install git:github.com/JohnsonRan/pi-telegram-operator
 pi install git:github.com/JohnsonRan/pi-cliproxyapi-provider
 pi install git:github.com/xz-dev/pi-reflect-watchdog
+pi install git:github.com/xz-dev/rpiv-mono@release/ask-user-question
+pi install git:github.com/JohnsonRan/pi-jev
 ```
 
 ### Hindsight memory
 
 The separately maintained [`pi-hindsight`](https://github.com/luxus/pi-hindsight) package replaces `pi-hermes-memory`.
 
-- `~/.pi/agent/hindsight.json` selects the shared `pi-coding` bank globally.
-- `.pi/hindsight.json` configures this repository for domain-tagged coding memory, automatic recall/retain, and disabled user memory. Other repositories need their own `/hindsight` setup.
+- `~/.pi/agent/hindsight.json` selects the shared `pi-coding` bank globally and the `pi-user-melody` user bank.
+- `.pi/hindsight.json` configures this repository for domain-tagged coding memory, automatic coding recall/retain, and enabled user memory with explicit-only user retain. Other repositories need their own `/hindsight` setup.
 - Keep `HINDSIGHT_BASE_URL` and `HINDSIGHT_API_TOKEN` in your local environment; neither is stored in this repository.
 
 Installing this repository as a Pi package does not copy these config files into active config locations. Merge them into the paths above when not using this checkout as `~/.pi/agent`, then restart Pi. Bank missions, mental models, and memory data remain on the Hindsight server; local queues, import checkpoints, and caches under `.pi/hindsight/` stay ignored.

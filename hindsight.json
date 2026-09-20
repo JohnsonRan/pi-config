@@ -4,6 +4,10 @@
       "enabled": true,
       "derive": "manual",
       "bankId": "pi-coding"
+    },
+    "user": {
+      "enabled": true,
+      "bankId": "pi-user-melody"
     }
   }
 }
