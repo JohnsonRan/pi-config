@@ -4,7 +4,6 @@ description: A very fast-moving programmer/worker. Excellent value for money and
 aliases: developer, coder, implementer, develop
 model: cliproxyapi/gemini-3.8-flash-high
 thinking: high
-fallbackModels: cliproxyapi/glm-5.3:medium, cliproxyapi/kimi-k3:medium
 systemPromptMode: replace
 inheritProjectContext: true
 inheritSkills: true

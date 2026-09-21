@@ -3,7 +3,6 @@ name: reviewer
 description: A rigorous quality gate for an individual implementation step.
 model: cliproxyapi/gpt-6-astra
 thinking: medium
-fallbackModels: cliproxyapi/kimi-k3:max, cliproxyapi/glm-5.3:max
 systemPromptMode: replace
 inheritProjectContext: true
 inheritSkills: true

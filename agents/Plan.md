@@ -3,7 +3,6 @@ name: Plan
 description: Planner for complex tasks and software development; plans require review by the reviewer agent
 model: cliproxyapi/gpt-6-astra
 thinking: max
-fallbackModels: cliproxyapi/kimi-k3:max, cliproxyapi/glm-5.3:max
 acceptanceRole: read-only
 systemPromptMode: replace
 inheritProjectContext: true

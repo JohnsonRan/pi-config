@@ -3,7 +3,6 @@ name: tester
 description: A professional software test engineer who derives test cases from requirements and plans, creates and executes automated tests, performs manual acceptance testing, and verifies that software behaves as intended.
 model: cliproxyapi/grok-4.6
 thinking: medium
-fallbackModels: cliproxyapi/glm-5.3:low
 systemPromptMode: replace
 inheritProjectContext: true
 inheritSkills: true

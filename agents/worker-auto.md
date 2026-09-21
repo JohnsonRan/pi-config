@@ -3,7 +3,6 @@ name: worker-auto
 description: A fast-moving programmer with intermediate coding skills and top-tier automation. May occasionally make small omissions or errors, so results require independent verification. Need sufficient turns and time to complete tasks carefully.
 model: cliproxyapi/glm-5.3
 thinking: max
-fallbackModels: cliproxyapi/kimi-k3:max
 systemPromptMode: replace
 inheritProjectContext: true
 inheritSkills: true

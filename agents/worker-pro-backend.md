@@ -3,7 +3,6 @@ name: worker-pro-backend
 description: A senior, versatile software engineer and DevOps professional. This agent is often heavily loaded, so using it can result in very long wait times; weigh the expected task value against the time cost before choosing it.
 model: cliproxyapi/gpt-6-astra
 thinking: xhigh
-fallbackModels: cliproxyapi/kimi-k3:max, cliproxyapi/glm-5.3:max
 systemPromptMode: replace
 inheritProjectContext: true
 inheritSkills: true
