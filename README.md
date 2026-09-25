@@ -15,7 +15,7 @@ Personal extensions and global configuration for [Pi](https://pi.dev).
 - [`JohnsonRan/pi-telegram-operator`](https://github.com/JohnsonRan/pi-telegram-operator) — threaded Telegram topics, streamed replies, remote controls, and session wake-up.
 - [`xz-dev/pi-reflect-watchdog`](https://github.com/xz-dev/pi-reflect-watchdog) — active-time and loop watchdog with explicit `/reflect` support.
 - [`xz-dev/rpiv-mono@release/ask-user-question`](https://github.com/xz-dev/rpiv-mono) — `ask_user_question` TUI questionnaires instead of guessing.
-- [`JohnsonRan/pi-jev`](https://github.com/JohnsonRan/pi-jev) — TypeSafe Jev auto-mode classifier for mutating tools (`/jev`).
+- [`xz-dev/pi-jev-todo-audit`](https://github.com/xz-dev/pi-jev-todo-audit) — TypeSafe Jev auto-mode classifier for mutating tools (`/jev`).
 - `agents/*.md` — specialized subagent definitions.
 - `skills/web-perf/SKILL.md` — Chrome DevTools-based web performance audit workflow.
 
@@ -70,7 +70,7 @@ Model discovery and inference are supplied by the separately maintained [`pi-cli
 
 Enter the CLIProxyAPI base URL and API key. The package discovers models dynamically, registers them under the `cliproxyapi` provider, and caches model metadata locally. Run `/cliproxyapi-refresh` after changing the proxy's model catalog.
 
-The tracked startup defaults are `cliproxyapi/gpt-6-astra` with `high` thinking. Subagents use their own model and thinking settings below.
+The tracked startup defaults are `cliproxyapi/gpt-6-astra` with `xhigh` thinking. Subagents use their own model and thinking settings below.
 
 ### Automatic retries
 
@@ -107,7 +107,7 @@ pi install git:github.com/JohnsonRan/pi-telegram-operator
 pi install git:github.com/JohnsonRan/pi-cliproxyapi-provider
 pi install git:github.com/xz-dev/pi-reflect-watchdog
 pi install git:github.com/xz-dev/rpiv-mono@release/ask-user-question
-pi install git:github.com/JohnsonRan/pi-jev
+pi install git:github.com/xz-dev/pi-jev-todo-audit
 ```
 
 ### Hindsight memory
@@ -131,16 +131,16 @@ Local agents and built-in overrides do not configure fallback models.
 | `scout` (built-in override) | `cliproxyapi/gemini-3.8-flash-high` | `high` | Codebase exploration and compressed context handoff |
 | `delegate` (built-in override) | `cliproxyapi/gemini-3.8-flash-high` | `high` | Generic isolated work |
 | `researcher` (built-in override) | `cliproxyapi/gemini-3.8-flash-high` | `high` | Source-backed research; writes `research.md` |
-| `evidence-auditor` (built-in override) | `cliproxyapi/grok-4.6` | `max` | Independent verification of decision-critical research claims and sources |
+| `evidence-auditor` (built-in override) | `cliproxyapi/grok-4.7` | `high` | Independent verification of decision-critical research claims and sources |
 | `Plan` | `cliproxyapi/gpt-6-astra` | `max` | Read-only planning; writes `plan.md` |
 | `code-merge-reviewer` | `cliproxyapi/glm-5.3-flash` | `max` | Final pre-push or merge review |
 | `frontend-engineer` | `cliproxyapi/kimi-k3` | `max` | Frontend implementation and browser-backed verification |
 | `oracle` | `cliproxyapi/gpt-6-astra` | `max` | Project or plan reflection and course correction |
 | `reviewer` | `cliproxyapi/gpt-6-astra` | `medium` | Focused implementation quality gate |
 | `reviewer-final` | `cliproxyapi/gpt-6-astra` | `xhigh` | Final quality gate after implementation and testing |
-| `tester` | `cliproxyapi/grok-4.6` | `medium` | Test design, automation, and acceptance verification |
+| `tester` | `cliproxyapi/grok-4.7` | `high` | Test design, automation, and acceptance verification |
 | `ui-leader` | `cliproxyapi/kimi-k3` | `max` | Product, information architecture, and UI direction |
-| `worker-auto` | `cliproxyapi/glm-5.3` | `max` | Fast automation work |
+| `worker-auto` | `cliproxyapi/grok-4.7` | `high` | Fast automation work |
 | `worker-pro-backend` | `cliproxyapi/gpt-6-astra` | `xhigh` | Heavy backend and infrastructure work |
 | `worker` | `cliproxyapi/gemini-3.8-flash-high` | `high` | Default routine implementation; aliases: `developer`, `coder`, `implementer`, `develop` |
 
