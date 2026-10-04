@@ -1,7 +1,7 @@
 ---
 name: reviewer-final
 description: The final rigorous quality gate after implementation, testing, and verification are complete. Use only this reviewer for the final review.
-model: cliproxyapi/gpt-6-astra
+model: cliproxyapi/claude-opus-5-5
 thinking: xhigh
 systemPromptMode: replace
 inheritProjectContext: true

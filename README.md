@@ -7,10 +7,12 @@ Personal extensions and global configuration for [Pi](https://pi.dev).
 ## What's included
 
 - `extensions/pi-web.ts` — `web_search` and `web_fetch`, with Firecrawl → Tavily → Exa fallback.
+- `extensions/herdr-agent-state.ts` — Herdr-managed TUI session and agent-state reporting.
 - [`JohnsonRan/pi-btw`](https://github.com/JohnsonRan/pi-btw) — `/btw` side questions that use session context without interrupting or entering the main conversation.
 - `settings.json` — global preferences, packages, CLIProxyAPI default provider, and default model.
+- `AGENTS.md` — cross-project instructions to recall user preferences from Hindsight at session start.
 - `hindsight.json` and `.pi/hindsight.json` — global coding-bank selection and this repository's Hindsight memory profile; no credentials or memory data.
-- `pi-retry.json` and `pi-continue-watchdog.json` — retry and continuation-watchdog settings.
+- `pi-retry.json` — retry-extension settings.
 - `pi-notify.json` — local BEL/OSC notifications for questions, completed work, and explicit agent notifications.
 - [`JohnsonRan/pi-telegram-operator`](https://github.com/JohnsonRan/pi-telegram-operator) — threaded Telegram topics, streamed replies, remote controls, and session wake-up.
 - [`xz-dev/pi-reflect-watchdog`](https://github.com/xz-dev/pi-reflect-watchdog) — active-time and loop watchdog with explicit `/reflect` support.
@@ -70,11 +72,19 @@ Model discovery and inference are supplied by the separately maintained [`pi-cli
 
 Enter the CLIProxyAPI base URL and API key. The package discovers models dynamically, registers them under the `cliproxyapi` provider, and caches model metadata locally. Run `/cliproxyapi-refresh` after changing the proxy's model catalog.
 
-The tracked startup defaults are `cliproxyapi/gpt-6-astra` with `xhigh` thinking. Subagents use their own model and thinking settings below.
+The tracked startup defaults are `cliproxyapi/claude-opus-5-5` with `high` thinking. Subagents use their own model and thinking settings below.
 
 ### Automatic retries
 
 `settings.json` enables Pi's agent-level automatic retries with `maxRetries: 10`. Errors containing `quota threshold` (case-insensitive) skip these retries, in addition to Pi's built-in non-retryable quota and billing patterns. The separate `pi-retry.json` configures the installed retry extension.
+
+The continuation-watchdog package remains installed, but this repository no longer tracks `pi-continue-watchdog.json`; package defaults apply.
+
+### Herdr integration
+
+`extensions/herdr-agent-state.ts` is generated and managed by Herdr. Do not edit it directly; reinstalling or updating the integration overwrites it.
+
+When Herdr launches Pi with `HERDR_ENV=1`, `HERDR_SOCKET_PATH`, and `HERDR_PANE_ID`, the extension reports the active TUI session plus `working`, `blocked`, and `idle` states over Herdr's local socket. Headless RPC, JSON, and print modes are ignored. No manual configuration is required outside Herdr.
 
 ## Global setup
 
@@ -116,6 +126,7 @@ The separately maintained [`pi-hindsight`](https://github.com/luxus/pi-hindsight
 
 - `~/.pi/agent/hindsight.json` selects the shared `pi-coding` bank globally and the `pi-user-melody` user bank.
 - `.pi/hindsight.json` configures this repository for domain-tagged coding memory, automatic coding recall/retain, and enabled user memory with explicit-only user retain. Other repositories need their own `/hindsight` setup.
+- `AGENTS.md` requires each new session to recall relevant preferences from `pi-user-melody`, while treating the current user request as authoritative.
 - Keep `HINDSIGHT_BASE_URL` and `HINDSIGHT_API_TOKEN` in your local environment; neither is stored in this repository.
 
 Installing this repository as a Pi package does not copy these config files into active config locations. Merge them into the paths above when not using this checkout as `~/.pi/agent`, then restart Pi. Bank missions, mental models, and memory data remain on the Hindsight server; local queues, import checkpoints, and caches under `.pi/hindsight/` stay ignored.
@@ -132,22 +143,22 @@ Local agents and built-in overrides do not configure fallback models.
 | `delegate` (built-in override) | `cliproxyapi/gemini-3.8-flash-high` | `high` | Generic isolated work |
 | `researcher` (built-in override) | `cliproxyapi/gemini-3.8-flash-high` | `high` | Source-backed research; writes `research.md` |
 | `evidence-auditor` (built-in override) | `cliproxyapi/grok-4.7` | `high` | Independent verification of decision-critical research claims and sources |
-| `Plan` | `cliproxyapi/gpt-6-astra` | `max` | Read-only planning; writes `plan.md` |
+| `Plan` | `cliproxyapi/gpt-6.1-sol` | `max` | Read-only planning; writes `plan.md` |
 | `code-merge-reviewer` | `cliproxyapi/glm-5.3-flash` | `max` | Final pre-push or merge review |
-| `frontend-engineer` | `cliproxyapi/kimi-k3` | `max` | Frontend implementation and browser-backed verification |
-| `oracle` | `cliproxyapi/gpt-6-astra` | `max` | Project or plan reflection and course correction |
-| `reviewer` | `cliproxyapi/gpt-6-astra` | `medium` | Focused implementation quality gate |
-| `reviewer-final` | `cliproxyapi/gpt-6-astra` | `xhigh` | Final quality gate after implementation and testing |
+| `frontend-engineer` | `cliproxyapi/claude-opus-5-5` | `high` | Frontend implementation and browser-backed verification |
+| `oracle` | `cliproxyapi/gpt-6.1-sol` | `max` | Project or plan reflection and course correction |
+| `reviewer` | `cliproxyapi/claude-opus-5-5` | `medium` | Focused implementation quality gate |
+| `reviewer-final` | `cliproxyapi/claude-opus-5-5` | `xhigh` | Final quality gate after implementation and testing |
 | `tester` | `cliproxyapi/grok-4.7` | `high` | Test design, automation, and acceptance verification |
-| `ui-leader` | `cliproxyapi/kimi-k3` | `max` | Product, information architecture, and UI direction |
+| `ui-leader` | `cliproxyapi/claude-opus-5-5` | `high` | Product, information architecture, and UI direction |
 | `worker-auto` | `cliproxyapi/grok-4.7` | `high` | Fast automation work |
-| `worker-pro-backend` | `cliproxyapi/gpt-6-astra` | `xhigh` | Heavy backend and infrastructure work |
+| `worker-pro-backend` | `cliproxyapi/claude-opus-5-5` | `xhigh` | Heavy backend and infrastructure work |
 | `worker` | `cliproxyapi/gemini-3.8-flash-high` | `high` | Default routine implementation; aliases: `developer`, `coder`, `implementer`, `develop` |
 
 The configured models must exist in Pi's model registry. Verify one with, for example:
 
 ```powershell
-pi --list-models gpt-6-astra
+pi --list-models claude-opus-5-5
 ```
 
 A project-specific definition at `<project>/.pi/agents/<agent-name>.md` takes precedence over the global definition. Run `/reload` or start a new session after changing extensions, skills, prompts, context files, or agent definitions.
@@ -178,7 +189,7 @@ After editing a resource:
 ```powershell
 git status
 git diff
-git add .gitignore settings.json hindsight.json .pi/hindsight.json pi-retry.json pi-continue-watchdog.json pi-notify.json extensions README.md agents
+git add -A
 git commit -m "feat: describe the change"
 git push
 ```

@@ -1,8 +1,8 @@
 ---
 name: ui-leader
 description: A leader in UI design and development, need sufficient turns and time to complete tasks carefully.
-model: cliproxyapi/kimi-k3
-thinking: max
+model: cliproxyapi/claude-opus-5-5
+thinking: high
 systemPromptMode: replace
 inheritProjectContext: true
 inheritSkills: true

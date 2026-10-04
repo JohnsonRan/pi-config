@@ -1,7 +1,7 @@
 ---
 name: Plan
 description: Planner for complex tasks and software development; plans require review by the reviewer agent
-model: cliproxyapi/gpt-6-astra
+model: cliproxyapi/gpt-6.1-sol
 thinking: max
 acceptanceRole: read-only
 systemPromptMode: replace

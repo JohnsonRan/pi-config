@@ -1,7 +1,7 @@
 ---
 name: reviewer
 description: A rigorous quality gate for an individual implementation step.
-model: cliproxyapi/gpt-6-astra
+model: cliproxyapi/claude-opus-5-5
 thinking: medium
 systemPromptMode: replace
 inheritProjectContext: true

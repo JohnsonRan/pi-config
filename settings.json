@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.87.2",
+  "lastChangelogVersion": "1.0.2",
   "theme": "dark",
   "packages": [
     "npm:context-mode",
@@ -29,8 +29,8 @@
     "git:github.com/xz-dev/pi-jev-todo-audit"
   ],
   "defaultProvider": "cliproxyapi",
-  "defaultModel": "gpt-6-astra",
-  "defaultThinkingLevel": "xhigh",
+  "defaultModel": "claude-opus-5-5",
+  "defaultThinkingLevel": "high",
   "enableInstallTelemetry": false,
   "powerline": {
     "preset": "nerd",
