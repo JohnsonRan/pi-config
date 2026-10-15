@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "1.0.2",
+  "lastChangelogVersion": "1.2.0",
   "theme": "dark",
   "packages": [
     "npm:context-mode",
@@ -26,7 +26,9 @@
     "git:github.com/nicobailon/pi-subagents",
     "git:github.com/luxus/pi-hindsight",
     "git:github.com/xz-dev/rpiv-mono@release/ask-user-question",
-    "git:github.com/xz-dev/pi-jev-todo-audit"
+    "git:github.com/xz-dev/pi-jev-todo-audit",
+    "git:github.com/xz-dev/downstream-fork-maintain-skill",
+    "git:github.com/xz-dev/pi-llm-as-jev"
   ],
   "defaultProvider": "cliproxyapi",
   "defaultModel": "claude-opus-5-5",
@@ -90,5 +92,9 @@
     "nonRetryableErrorPatterns": [
       "quota threshold"
     ]
+  },
+  "thinkingDisplay": "preview",
+  "compaction": {
+    "background": true
   }
 }

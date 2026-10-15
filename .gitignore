@@ -15,6 +15,7 @@
 !/pi-notify.json
 !/pi-notify-bark.cjs
 !/pi-continue-watchdog.json
+!/llm-as-jev.json
 
 # Optional global Pi instructions and UI configuration
 !/AGENTS.md

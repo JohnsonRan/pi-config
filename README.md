@@ -18,6 +18,9 @@ Personal extensions and global configuration for [Pi](https://pi.dev).
 - [`xz-dev/pi-reflect-watchdog`](https://github.com/xz-dev/pi-reflect-watchdog) — active-time and loop watchdog with explicit `/reflect` support.
 - [`xz-dev/rpiv-mono@release/ask-user-question`](https://github.com/xz-dev/rpiv-mono) — `ask_user_question` TUI questionnaires instead of guessing.
 - [`xz-dev/pi-jev-todo-audit`](https://github.com/xz-dev/pi-jev-todo-audit) — TypeSafe Jev auto-mode classifier for mutating tools (`/jev`).
+- [`xz-dev/pi-llm-as-jev`](https://github.com/xz-dev/pi-llm-as-jev) — in-process judgment service that other extensions query for typed choices, booleans, and scores.
+- `llm-as-jev.json` — pins the judgment service's native classifier model; no credentials.
+- [`xz-dev/downstream-fork-maintain-skill`](https://github.com/xz-dev/downstream-fork-maintain-skill) — artifact-first skill for maintaining downstream forks and the PRs that flow back upstream.
 - `agents/*.md` — specialized subagent definitions.
 - `skills/web-perf/SKILL.md` — Chrome DevTools-based web performance audit workflow.
 
@@ -80,6 +83,22 @@ The tracked startup defaults are `cliproxyapi/claude-opus-5-5` with `high` think
 
 The continuation-watchdog package remains installed, but this repository no longer tracks `pi-continue-watchdog.json`; package defaults apply.
 
+### Thinking display and background compaction
+
+`settings.json` sets `thinkingDisplay` to `preview`, so reasoning shows as a live preview instead of a collapsed placeholder, and enables `compaction.background`, so context compaction runs off the critical path and the session keeps accepting input while it happens.
+
+### Judgment service (llm-as-jev)
+
+The separately maintained [`pi-llm-as-jev`](https://github.com/xz-dev/pi-llm-as-jev) package exposes one judgment service to other extensions. `llm-as-jev.json` keeps only the native classifier pin:
+
+```json
+{
+  "classifierModel": "cliproxyapi/jev-latest"
+}
+```
+
+The CLIProxyAPI-routed Jev model is selected explicitly, so an unavailable pick errors instead of silently falling back to another native classifier. Removing the file restores default Jev discovery. `mode`, the LLM slot, thinking level, and timeouts are left at package defaults.
+
 ### Herdr integration
 
 `extensions/herdr-agent-state.ts` is generated and managed by Herdr. Do not edit it directly; reinstalling or updating the integration overwrites it.
@@ -118,6 +137,8 @@ pi install git:github.com/JohnsonRan/pi-cliproxyapi-provider
 pi install git:github.com/xz-dev/pi-reflect-watchdog
 pi install git:github.com/xz-dev/rpiv-mono@release/ask-user-question
 pi install git:github.com/xz-dev/pi-jev-todo-audit
+pi install git:github.com/xz-dev/pi-llm-as-jev
+pi install git:github.com/xz-dev/downstream-fork-maintain-skill
 ```
 
 ### Hindsight memory
@@ -143,7 +164,7 @@ Local agents and built-in overrides do not configure fallback models.
 | `delegate` (built-in override) | `cliproxyapi/gemini-3.8-flash-high` | `high` | Generic isolated work |
 | `researcher` (built-in override) | `cliproxyapi/gemini-3.8-flash-high` | `high` | Source-backed research; writes `research.md` |
 | `evidence-auditor` (built-in override) | `cliproxyapi/grok-4.7` | `high` | Independent verification of decision-critical research claims and sources |
-| `Plan` | `cliproxyapi/gpt-6.1-sol` | `max` | Read-only planning; writes `plan.md` |
+| `Plan` | `cliproxyapi/kimi-k3` | `max` | Read-only planning; writes `plan.md` |
 | `code-merge-reviewer` | `cliproxyapi/glm-5.3-flash` | `max` | Final pre-push or merge review |
 | `frontend-engineer` | `cliproxyapi/claude-opus-5-5` | `high` | Frontend implementation and browser-backed verification |
 | `oracle` | `cliproxyapi/gpt-6.1-sol` | `max` | Project or plan reflection and course correction |
@@ -152,7 +173,7 @@ Local agents and built-in overrides do not configure fallback models.
 | `tester` | `cliproxyapi/grok-4.7` | `high` | Test design, automation, and acceptance verification |
 | `ui-leader` | `cliproxyapi/claude-opus-5-5` | `high` | Product, information architecture, and UI direction |
 | `worker-auto` | `cliproxyapi/grok-4.7` | `high` | Fast automation work |
-| `worker-pro-backend` | `cliproxyapi/claude-opus-5-5` | `xhigh` | Heavy backend and infrastructure work |
+| `worker-pro-backend` | `cliproxyapi/claude-opus-5-5` | `high` | Heavy backend and infrastructure work |
 | `worker` | `cliproxyapi/gemini-3.8-flash-high` | `high` | Default routine implementation; aliases: `developer`, `coder`, `implementer`, `develop` |
 
 The configured models must exist in Pi's model registry. Verify one with, for example:
